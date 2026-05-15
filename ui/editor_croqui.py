@@ -1270,6 +1270,9 @@ class EditorCroqui(tk.Frame):
                      bg=FUNDO_PAINEL, fg=TEXTO_TERCIARIO,
                      width=11, anchor="w").pack(side="left")
             var = tk.StringVar(value=valor_str)
+            # Guarda ref do campo Rotacao para update rapido
+            if label == "Rotacao":
+                self._rot_var = var
             e = tk.Entry(f, textvariable=var, font=FONTE_SMALL,
                          bg=FUNDO_CARD, fg=TEXTO_PRIMARIO,
                          insertbackground=DOURADO,
@@ -1514,6 +1517,15 @@ class EditorCroqui(tk.Frame):
             self._click_via(e, x, y)
             return
         f=self.ferramenta
+        # Detecta clique no handle de rotacao
+        if f=="sel" and self.sel_idx is not None:
+            hp = getattr(self, "_rot_handle_pos", None)
+            if hp is not None:
+                hx, hy, hr = hp
+                if (e.x-hx)**2 + (e.y-hy)**2 <= (hr+4)**2:
+                    self._rotacionando = True
+                    self._salvar_historico()
+                    return
         if f=="sel":         self._selecionar(x,y)
         elif f=="apagar":    self._apagar_em(x,y)
         elif f=="calibrar":  self._calib_click(x,y,e.x,e.y)
@@ -1535,6 +1547,26 @@ class EditorCroqui(tk.Frame):
         x,y=self._tm(e.x,e.y)
         if self._modo_via:
             self._drag_via(e, x, y)
+            return
+        # Modo rotacao ativo
+        if getattr(self, "_rotacionando", False) and self.sel_idx is not None:
+            import math
+            el = self.elementos[self.sel_idx]
+            cx, cy = el.get("x",0), el.get("y",0)
+            # Angulo entre centro do objeto e o mouse (em metros)
+            dx = x - cx
+            dy = y - cy
+            # atan2 com Y invertido (tela cresce pra baixo)
+            ang = math.degrees(math.atan2(dx, -dy))
+            el["angulo"] = round(ang, 1)
+            self._redesenhar()
+            # Atualiza SO o campo de rotacao (nao reconstroi painel)
+            rv = getattr(self, "_rot_var", None)
+            if rv is not None:
+                try:
+                    rv.set(f"{el['angulo']:.1f}")
+                except Exception:
+                    pass
             return
         if self.ferramenta=="sel" and self.sel_idx is not None and self.drag_start:
             el=self.elementos[self.sel_idx]
@@ -1566,6 +1598,12 @@ class EditorCroqui(tk.Frame):
         x,y=self._tm(e.x,e.y)
         if self._modo_via:
             self._release_via(e, x, y)
+            return
+        if getattr(self, "_rotacionando", False):
+            self._rotacionando = False
+            self._redesenhar()
+            if self.sel_idx is not None:
+                self._mostrar_props(self.sel_idx)
             return
         if self.ferramenta in ("r1","r2","cota") and self.drag_start:
             self._finalizar_linha(x,y)
@@ -1978,7 +2016,46 @@ class EditorCroqui(tk.Frame):
         self._rodape(W,H)
         self._bussola(W, H)
 
-    def _desenhar_el(self,el,sel=False):
+    def _draw_handle_rot(self, el, tx, ty):
+        """Desenha a bolinha de rotacao acima do objeto e guarda sua posicao."""
+        tipo = el.get("tipo")
+        if tipo not in ("carro","moto","caminhao","bicicleta","pedestre","sc"):
+            self._rot_handle_pos = None
+            return
+        # Calcula posicao acima do objeto, considerando o angulo
+        import math
+        larg_padrao={"carro":28,"moto":20,"caminhao":36,"bicicleta":16,"pedestre":14,"sc":20}
+        alt_padrao= {"carro":14,"moto":8, "caminhao":16,"bicicleta":5, "pedestre":14,"sc":20}
+        alt = el.get("alt", alt_padrao.get(tipo, 14))
+        ang = math.radians(el.get("angulo", 0))
+        # Distancia acima do objeto (em tela)
+        dist = (alt/2 + 22) * self.zoom
+        # Direcao "para cima" do objeto rotacionada
+        hx = tx + dist * math.sin(ang)
+        hy = ty - dist * math.cos(ang)
+        c = self.canvas
+        # Linha conectora
+        c.create_line(tx, ty, hx, hy, fill=DOURADO,
+                      width=max(1,int(self.zoom)), dash=(3,2))
+        # Bolinha
+        r = 7
+        c.create_oval(hx-r, hy-r, hx+r, hy+r,
+                      fill=FUNDO_PAINEL, outline=DOURADO, width=2)
+        # Icone de rotacao (arco)
+        c.create_arc(hx-4, hy-4, hx+4, hy+4,
+                     start=30, extent=240, style="arc",
+                     outline=DOURADO, width=2)
+        # Guarda posicao para hit-test (em coordenadas de tela)
+        self._rot_handle_pos = (hx, hy, r + 4)
+
+    def _desenhar_el(self, el, sel=False):
+        self._desenhar_el_orig(el, sel)
+        if sel and el.get("tipo") in ("carro","moto","caminhao",
+                                       "bicicleta","pedestre","sc"):
+            tx, ty = self._mt(el.get("x",0), el.get("y",0))
+            self._draw_handle_rot(el, tx, ty)
+
+    def _desenhar_el_orig(self,el,sel=False):
         c=self.canvas; tipo=el["tipo"]
         tx,ty=self._mt(el.get("x",0),el.get("y",0))
         label=el.get("label","")

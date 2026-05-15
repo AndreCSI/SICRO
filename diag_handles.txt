@@ -1,0 +1,143 @@
+============================================================
+DIAGNOSTICO HANDLES / SELECAO / ARRASTE
+============================================================
+
+1. _desenhar_el (assinatura e inicio):
+  Total: 245 linhas
+    0:     def _desenhar_el(self,el,sel=False):
+    1:         c=self.canvas; tipo=el["tipo"]
+    2:         tx,ty=self._mt(el.get("x",0),el.get("y",0))
+    3:         label=el.get("label","")
+    4: 
+    5:         # ── Infraestrutura de via ──
+    6:         if tipo=="_asfalto":
+    7:             ax1,ay1=self._mt(el["x"],el["y"]); ax2,ay2=self._mt(el["x2"],el["y2"])
+    8:             c.create_rectangle(ax1,ay1,ax2,ay2,fill="#606060",outline=""); return
+    9:         if tipo=="_asfalto_terra":
+   10:             ax1,ay1=self._mt(el["x"],el["y"]); ax2,ay2=self._mt(el["x2"],el["y2"])
+   11:             c.create_rectangle(ax1,ay1,ax2,ay2,fill="#5A4A2A",outline=""); return
+   12:         if tipo=="_calcada":
+   13:             ax1,ay1=self._mt(el["x"],el["y"]); ax2,ay2=self._mt(el["x2"],el["y2"])
+   14:             c.create_rectangle(ax1,ay1,ax2,ay2,fill="#909090",outline=""); return
+   15:         if tipo=="_canteiro":
+   16:             ax1,ay1=self._mt(el["x"],el["y"]); ax2,ay2=self._mt(el["x2"],el["y2"])
+   17:             c.create_rectangle(ax1,ay1,ax2,ay2,fill="#1A3A1A",outline=""); return
+   18:         if tipo=="_faixa_h":
+   19:             ax1,ay1=self._mt(el["x"],el["y"]); ax2,ay2=self._mt(el["x2"],el["y2"])
+   20:             # Linha tracejada amarela no centro da via
+   21:             c.create_line(ax1,ay1,ax2,ay2,
+   22:                           fill=AMARELO,
+   23:                           width=max(2,int(2*self.zoom)),
+   24:                           dash=(max(8,int(14*self.zoom)), max(6,int(10*self.zoom))))
+   25:             return
+   26:         if tipo=="_faixa_v":
+   27:             ax1,ay1=self._mt(el["x"],el["y"]); ax2,ay2=self._mt(el["x2"],el["y2"])
+   28:             c.create_line(ax1,ay1,ax2,ay2,
+   29:                           fill=AMARELO,
+   30:                           width=max(2,int(2*self.zoom)),
+   31:                           dash=(max(8,int(14*self.zoom)), max(6,int(10*self.zoom))))
+   32:             return
+   33:         if tipo=="_rotatoria":
+   34:             r=el.get("r",80)*self.zoom; ri=r*0.45
+   35:             c.create_oval(tx-r,ty-r,tx+r,ty+r,fill="#606060",outline="")
+   36:             c.create_oval(tx-ri,ty-ri,tx+ri,ty+ri,fill="#1A3A1A",outline="")
+   37:             c.create_oval(tx-r,ty-r,tx+r,ty+r,fill="",outline=AMARELO,
+   38:                           width=max(1,int(self.zoom)),dash=(6,4)); return
+   39: 
+   40:         # ── Elementos de via (EditorVia) ──
+   41:         if tipo == "v_asfalto":
+   42:             ax1,ay1=self._mt(el["x"],el["y"]); ax2,ay2=self._mt(el["x2"],el["y2"])
+   43:             c.create_rectangle(ax1,ay1,ax2,ay2,fill="#606060",outline="#808080",width=1); return
+   44:         if tipo == "v_calcada":
+   45:             ax1,ay1=self._mt(el["x"],el["y"]); ax2,ay2=self._mt(el["x2"],el["y2"])
+   46:             c.create_rectangle(ax1,ay1,ax2,ay2,fill="#A0A0A0",outline="#C0C0C0",width=1)
+   47:             p=max(4,int(10*self.zoom))
+   48:             for xi in range(int(ax1),int(ax2),p):
+   49:                 c.create_line(xi,int(ay1),xi,int(ay2),fill="#888",width=1)
+  ...
+  contem 'create_rectangle': 10x
+  contem 'create_oval': 15x
+  contem 'sel=': 1x
+  contem 'alca': 2x
+
+2. Binds de mouse no canvas:
+  L971: <Button-1> -> self._click
+  L972: <Double-Button-1> -> self._dblclick
+  L973: <B1-Motion> -> self._drag
+  L974: <ButtonRelease-1> -> self._release
+  L975: <Button-3> -> self._click_dir
+  L976: <MouseWheel> -> self._scroll_zoom
+  L977: <Button-2> -> self._pan_ini
+  L978: <B2-Motion> -> self._pan_mov
+  L981: <Control-z> -> self._desfazer
+  L982: <Control-Z> -> self._desfazer
+  L1134: <Delete> -> self._del_key
+  L1135: <BackSpace> -> self._del_key
+  L2542: <Button-1> -> self._click
+  L2543: <B1-Motion> -> self._drag
+  L2544: <ButtonRelease-1> -> self._release
+  L2545: <Button-3> -> self._click_dir
+  L2546: <MouseWheel> -> self._scroll_zoom
+  L2547: <Button-2> -> self._pan_ini
+  L2548: <B2-Motion> -> self._pan_mov
+  L2550: <Motion> -> self._motion_preview
+  L2551: <Control-z> -> self._desfazer
+  L2553: <Delete> -> self._apagar_sel
+
+3. Metodos de drag/move/click:
+  L1511: def _click
+  L1581: def _click_dir
+  L1789: def _click_via
+  L2653: def _click
+  L2683: def _click_dir
+  L1534: def _drag
+  L1797: def _drag_via
+  L2661: def _drag
+  L1565: def _release
+  L1810: def _release_via
+  L2674: def _release
+  L2689: def _motion_preview
+
+4. Hit-test / deteccao de elemento sob mouse:
+  'sel_idx': 45 ocorrencias
+
+5. _abrir_redimensionar / DialogoRedimensionar:
+    0:     def _abrir_redimensionar(self):
+    1:         if self.sel_idx is None: return
+    2:         el = self.elementos[self.sel_idx]
+    3:         dlg = DialogoRedimensionar(self.winfo_toplevel(), el, self._redesenhar)
+    4:         self.winfo_toplevel().wait_window(dlg)
+    5:         self._atualizar_camadas()
+    6:         self._redesenhar()
+    7: 
+    8:     # ──────────────────────────────────────────
+    9:     #  FERRAMENTAS
+   10:     # ──────────────────────────────────────────
+
+6. Chaves de um elemento (x,y,larg,alt,angulo...):
+  Keys encontradas em _inserir: ['angulo', 'bicicleta', 'caminhao', 'carro', 'label', 'moto', 'pedestre', 'sc', 'texto', 'tipo', 'x', 'y']
+
+7. Desenho de selecao (handles amarelos da imagem):
+  L1620: create_oval(tx-5,ty-5,tx+5,ty+5,
+                                fill=AMARELO,outline=BRAN
+  L1854: create_oval(mx-r,my-r,mx+r,my+r,fill="#606060",outline=AMARELO,width=2)
+  L2018: create_oval(tx-r,ty-r,tx+r,ty+r,fill="",outline=AMARELO,
+                          width=m
+  L2058: create_oval(tx-r,ty-r,tx+r,ty+r,fill="",outline=AMARELO,
+                          width=m
+  L2139: create_oval(ax1-r,ay1-r,ax1+r,ay1+r,
+                              outline=AMARELO,width=2
+  L2141: create_oval(ax2-r,ay2-r,ax2+r,ay2+r,
+                              outline=AMARELO,width=2
+  L2223: create_oval(tx-r,ty-r,tx+r,ty+r,
+                          outline=AMARELO,width=2,dash=(4
+  L2767: create_oval(mx-r,my-r,mx+r,my+r,
+                              fill="#606060",outline=AMAR
+  L2965: create_oval(tx-r,ty-r,tx+r,ty+r,fill="",outline=AMARELO,
+                          width=m
+  L3013: create_oval(tx-r,ty-r,tx+r,ty+r,fill="",outline=AMARELO,
+                          width=m
+  L3085: create_oval(tx-r2,ty-r2,tx+r2,ty+r2,
+                         outline=AMARELO,width=2,dash
+  L3089: create_oval(ax1-6,ay1-6,ax1+6,ay1+6,fill=AMARELO,outline="")
+  L3090: create_oval(ax2-6,ay2-6,ax2+6,ay2+6,fill=AMARELO,outline="")

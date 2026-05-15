@@ -1,0 +1,115 @@
+============================================================
+DIAGNOSTICO 2 — CLICK/DRAG/RELEASE + HANDLES
+============================================================
+
+--- _click (EditorCroqui) ---
+    0:     def _click(self,e):
+    1:         x,y=self._tm(e.x,e.y)
+    2:         if self._modo_via:
+    3:             self._click_via(e, x, y)
+    4:             return
+    5:         f=self.ferramenta
+    6:         if f=="sel":         self._selecionar(x,y)
+    7:         elif f=="apagar":    self._apagar_em(x,y)
+    8:         elif f=="calibrar":  self._calib_click(x,y,e.x,e.y)
+    9:         elif f in ("r1","r2","cota"):
+   10:             self.drag_start=(x,y)
+   11:         elif f in ("carro","moto","caminhao","bicicleta",
+   12:                    "pedestre","sc","texto"):
+   13:             self._inserir(f,x,y)
+   14: 
+   15: 
+
+--- _drag (EditorCroqui) ---
+    0:     def _drag(self,e):
+    1:         x,y=self._tm(e.x,e.y)
+    2:         if self._modo_via:
+    3:             self._drag_via(e, x, y)
+    4:             return
+    5:         if self.ferramenta=="sel" and self.sel_idx is not None and self.drag_start:
+    6:             el=self.elementos[self.sel_idx]
+    7:             dx=x-self.drag_start[0]; dy=y-self.drag_start[1]
+    8:             if not getattr(self, "_drag_saved", False):
+    9:                 self._salvar_historico()
+   10:                 self._drag_saved = True
+   11:             dp = getattr(self, "_drag_ponto", None)
+   12:             if dp == "p1":
+   13:                 # Arrasta só o ponto inicial
+   14:                 el["x"] += dx; el["y"] += dy
+   15:             elif dp == "p2" and "x2" in el:
+   16:                 # Arrasta só o ponto final
+   17:                 el["x2"] += dx; el["y2"] += dy
+   18:             else:
+   19:                 # Move o objeto todo
+   20:                 el["x"]=el.get("x",0)+dx; el["y"]=el.get("y",0)+dy
+   21:                 if "x2" in el: el["x2"]+=dx; el["y2"]+=dy
+   22:             self.drag_start=(x,y)
+   23:             self._redesenhar()
+   24:         elif self.ferramenta in ("r1","r2","cota") and self.drag_start:
+   25:             if self.tmp_linha: self.canvas.delete(self.tmp_linha)
+   26:             tx1,ty1=self._mt(*self.drag_start)
+   27:             tx2,ty2=self._mt(x,y)
+   28:             cor={"r1":COR_R1,"r2":COR_R2,"cota":COR_COTA}.get(self.ferramenta,"#888")
+   29:             self.tmp_linha=self.canvas.create_line(tx1,ty1,tx2,ty2,fill=cor,width=2)
+   30: 
+
+--- _release (EditorCroqui) ---
+    0:     def _release(self,e):
+    1:         x,y=self._tm(e.x,e.y)
+    2:         if self._modo_via:
+    3:             self._release_via(e, x, y)
+    4:             return
+    5:         if self.ferramenta in ("r1","r2","cota") and self.drag_start:
+    6:             self._finalizar_linha(x,y)
+    7:         elif self.ferramenta=="sel" and self.sel_idx is not None:
+    8:             # Salva histórico após mover/editar elemento
+    9:             pass  # historico salvo no início do drag não necessário aqui
+   10:         self.drag_start=None
+   11:         self._drag_ponto=None
+   12:         self._drag_saved=False
+   13:         if self.tmp_linha:
+   14:             self.canvas.delete(self.tmp_linha); self.tmp_linha=None
+   15: 
+
+--- Bloco de selecao em _desenhar_el (sel=True / handles) ---
+    0: if sel:
+    1:                 r=10*self.zoom
+    2:                 c.create_oval(ax1-r,ay1-r,ax1+r,ay1+r,
+    3:                               outline=AMARELO,width=2,dash=(4,3))
+    4:                 c.create_oval(ax2-r,ay2-r,ax2+r,ay2+r,
+    5:                               outline=AMARELO,width=2,dash=(4,3))
+    6:             return
+    7: 
+    8:         # ── Cota ──
+    9:         if tipo=="cota":
+   10:             tx2,ty2=self._mt(el["x2"],el["y2"])
+   11:             c.create_line(tx,ty,tx2,ty2,fill=COR_COTA,width=1,
+   12:                           arrow="both",arrowshape=(6,8,3))
+   13:             c.create_text((tx+tx2)/2,(ty+ty2)/2-8,text=label,
+   14:                           fill=COR_COTA,font=FONTE_MONO,anchor="s"); return
+   15: 
+   16:         # ── Vias manuais ──
+   17:         if tipo in ("via_h","via_v"):
+   18:             tx2,ty2=self._mt(el["x2"],el["y2"])
+   19:             larg=max(2,int(el.get("espessura",40)*self.zoom))
+   20:             c.create_line(tx,ty,tx2,ty2,fill="#606060",width=larg,capstyle="butt")
+   21:             c.create_line(tx,ty,tx2,ty2,fill="#707070",
+   22:                           width=max(1,larg-2),capstyle="butt"); return
+   23: 
+   24:         # ── Veículos ──
+   25:         larg_padrao={"carro":28,"moto":20,"caminhao":36,"bicicleta":16,"pedestre":14}
+   26:         alt_padrao= {"carro":14,"moto":8, "caminhao":16,"bicicleta":5, "pedestre":14}
+   27:         cores_padrao={"carro":AZUL_CLARO,"moto":"#9B6BDF",
+   28:                       "caminhao":COR_PERIGO,"bicicleta":COR_SUCESSO,"pedestre":AMARELO}
+   29: 
+   30:         if tipo in larg_padrao:
+   31:             larg = el.get("larg", larg_padrao[tipo])
+   32:             alt  = el.get(
+
+--- _mt / _tm (transformacao coordenadas) ---
+    0:     def _mt(self,x,y): return x*self.zoom+self.pan_x, y*self.zoom+self.pan_y
+
+    0:     def _tm(self,tx,ty): return (tx-self.pan_x)/self.zoom, (ty-self.pan_y)/self.zoom
+
+
+--- Como descobre elemento clicado (hit-test) ---
