@@ -1,0 +1,103 @@
+============================================================
+DIAGNOSTICO PAINEL CAMADAS
+============================================================
+
+1. Ocorrencias de 'Camadas':
+  L995: ...      cab_cam.pack(fill="x", padx=6, pady=(8,2)) |         tk.Label(cab_cam, text="Camadas", font=FONTE_SUB, |                  bg=COR_PAINEL, fg=AMARELO).pack(side="left") |  |         # Botões mover camada | ...
+
+2. _atualizar_camadas COMPLETO:
+    0:     def _atualizar_camadas(self):
+    1:         # Atualiza contador na barra de status
+    2:         if hasattr(self, "_st_objetos"):
+    3:             self._st_objetos.config(text=" " + str(len(self.elementos)))
+    4:         """Sincroniza o Listbox com self.elementos (ordem invertida = topo primeiro)."""
+    5:         sel_atual = self.sel_idx
+    6:         self.lb_camadas.delete(0, tk.END)
+    7: 
+    8:         for i, el in reversed(list(enumerate(self.elementos))):
+    9:             icone, nome = TIPO_INFO.get(el["tipo"], ("?", el["tipo"]))
+   10:             label_el = el.get("label","")
+   11:             txt = f" {icone}  {nome}"
+   12:             if label_el:
+   13:                 txt += f"  [{label_el}]"
+   14:             self.lb_camadas.insert(tk.END, txt)
+   15:             # Colorir elementos de infra levemente
+   16:             if el["tipo"].startswith("_"):
+   17:                 self.lb_camadas.itemconfig(tk.END, fg=CINZA_MEDIO)
+   18:             else:
+   19:                 self.lb_camadas.itemconfig(tk.END, fg=BRANCO)
+   20: 
+   21:         # Restaura seleção visual
+   22:         if sel_atual is not None:
+   23:             # índice no listbox está invertido
+   24:             lb_idx = len(self.elementos) - 1 - sel_atual
+   25:             if 0 <= lb_idx < self.lb_camadas.size():
+   26:                 self.lb_camadas.selection_set(lb_idx)
+   27:                 self.lb_camadas.see(lb_idx)
+   28: 
+
+3. Widget de camadas (listbox/tree/canvas):
+  'Listbox': 8x — primeira L294
+  'self.lb_camadas': 12x — primeira L1015
+
+4. Construcao do painel direito (pd):
+    0:         pd = tk.Frame(corpo, bg=COR_PAINEL, width=220)
+    1:         pd.pack(side="right", fill="y")
+    2:         pd.pack_propagate(False)
+    3:         tk.Frame(pd, bg=AMARELO, height=2).pack(fill="x")
+    4: 
+    5:         # --- Seção Camadas ---
+    6:         cab_cam = tk.Frame(pd, bg=COR_PAINEL)
+    7:         cab_cam.pack(fill="x", padx=6, pady=(8,2))
+    8:         tk.Label(cab_cam, text="Camadas", font=FONTE_SUB,
+    9:                  bg=COR_PAINEL, fg=AMARELO).pack(side="left")
+   10: 
+   11:         # Botões mover camada
+   12:         for sym, tip, cmd in [("▲","Subir camada",self._camada_subir),
+   13:                                 ("▼","Descer camada",self._camada_descer)]:
+   14:             b = tk.Button(cab_cam, text=sym, font=("Segoe UI",9),
+   15:                           width=2, cursor="hand2",
+   16:                           bg=COR_CARD, fg=BRANCO,
+   17:                           activebackground=AZUL_MEDIO,
+   18:                           relief="flat", pady=1,
+   19:                           command=cmd)
+   20:             b.pack(side="right", padx=1)
+   21:             b.bind("<Enter>", lambda e,t=tip: self.status.config(text=t))
+   22: 
+   23:         # Listbox de camadas
+   24:         flb = tk.Frame(pd, bg=COR_CARD)
+   25:         flb.pack(fill="both", expand=True, padx=4, pady=2)
+   26:         scrl_cam = tk.Scrollbar(flb)
+   27:         scrl_cam.pack(side="right", fill="y")
+   28:         self.lb_camadas = tk.Listbox(
+   29:             flb,
+   30:             yscrollcommand=scrl_cam.set,
+   31:             bg=COR_CARD, fg=BRANCO,
+   32:             selectbackground=AZUL_MEDIO,
+   33:             selectforeground=BRANCO,
+   34:             font=("Segoe UI",9),
+   35:             relief="flat", bd=0,
+   36:             activestyle="none",
+   37:             highlightthickness=0,
+   38:         )
+   39:         self.lb_camadas.pack(fill="both", expand=True)
+   40:         scrl_cam.config(command=self.lb_camadas.yview)
+   41:         self.lb_camadas.bind("<<ListboxSelect>>", self._camada_selecionada)
+   42: 
+   43:         # Botão apagar da camada
+   44:         tk.Button(pd, text="⌫  Apagar selecionado",
+   45:                   font=FONTE_PEQ, cursor="hand2",
+   46:                   bg="#3A1010", fg="#FF8080",
+   47:                   activebackground="#5A1A1A",
+   48:                   relief="flat", pady=4,
+   49:                   command=self._camada_apagar).pack(fill="x", padx=4, pady=(0,4))
+   50: 
+   51:         # --- Separador ---
+   52:         tk.Frame(pd, bg=AMARELO, height=1).pack(fill="x", padx=4)
+   53: 
+   54:         # --- Seção Propriedades (painel rico) ---
+   55:         tk.Label(pd, text="Propriedades", font=FONTE_H3,
+   56:                  bg=FUNDO_PAINEL, fg=DOURADO).pack(pady=(10,4), anchor="w", padx=10)
+   57:         # Container que recebera os campos editaveis
+   58:         self._props = tk.Frame(pd, bg=FUNDO_PAINEL)
+   59:         self._props.pack(fill="x", padx=10, pady=2)
