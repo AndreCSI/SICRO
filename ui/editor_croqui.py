@@ -1270,9 +1270,13 @@ class EditorCroqui(tk.Frame):
                      bg=FUNDO_PAINEL, fg=TEXTO_TERCIARIO,
                      width=11, anchor="w").pack(side="left")
             var = tk.StringVar(value=valor_str)
-            # Guarda ref do campo Rotacao para update rapido
+            # Guarda refs para update rapido sem reconstruir painel
             if label == "Rotacao":
                 self._rot_var = var
+            elif label.startswith("Largura"):
+                self._larg_var = var
+            elif label.startswith("Altura"):
+                self._alt_var = var
             e = tk.Entry(f, textvariable=var, font=FONTE_SMALL,
                          bg=FUNDO_CARD, fg=TEXTO_PRIMARIO,
                          insertbackground=DOURADO,
@@ -1517,6 +1521,26 @@ class EditorCroqui(tk.Frame):
             self._click_via(e, x, y)
             return
         f=self.ferramenta
+        # Detecta clique em handle de CANTO (resize)
+        if f=="sel" and self.sel_idx is not None:
+            for hx, hy, hr, nome in getattr(self, "_canto_handles", []):
+                if (e.x-hx)**2 + (e.y-hy)**2 <= (hr+4)**2:
+                    self._redimensionando = nome
+                    self._salvar_historico()
+                    el = self.elementos[self.sel_idx]
+                    # Guarda larg/alt inicial e ponto inicial do mouse
+                    import math
+                    larg_p={"carro":28,"moto":20,"caminhao":36,
+                            "bicicleta":16,"pedestre":14,"sc":20}
+                    alt_p= {"carro":14,"moto":8,"caminhao":16,
+                            "bicicleta":5,"pedestre":14,"sc":20}
+                    t = el.get("tipo")
+                    self._resize_larg0 = el.get("larg", larg_p.get(t,28))
+                    self._resize_alt0  = el.get("alt",  alt_p.get(t,14))
+                    self._resize_mouse0 = (e.x, e.y)
+                    self._resize_cx, self._resize_cy = self._mt(
+                        el.get("x",0), el.get("y",0))
+                    return
         # Detecta clique no handle de rotacao
         if f=="sel" and self.sel_idx is not None:
             hp = getattr(self, "_rot_handle_pos", None)
@@ -1547,6 +1571,32 @@ class EditorCroqui(tk.Frame):
         x,y=self._tm(e.x,e.y)
         if self._modo_via:
             self._drag_via(e, x, y)
+            return
+        # Modo redimensionar ativo (proporcional pelos cantos)
+        if getattr(self, "_redimensionando", None) and self.sel_idx is not None:
+            import math
+            el = self.elementos[self.sel_idx]
+            mx0, my0 = self._resize_mouse0
+            cx, cy = self._resize_cx, self._resize_cy
+            # Distancia do centro ao mouse inicial e atual
+            d0 = math.hypot(mx0 - cx, my0 - cy)
+            d1 = math.hypot(e.x - cx, e.y - cy)
+            if d0 > 1:
+                fator = d1 / d0
+                fator = max(0.2, min(5.0, fator))  # limites sensatos
+                el["larg"] = max(3, round(self._resize_larg0 * fator, 1))
+                el["alt"]  = max(2, round(self._resize_alt0  * fator, 1))
+                self._redesenhar()
+                # Atualiza SO os campos largura/altura (nao reconstroi)
+                k = self.k if (self.calibrado and self.k) else 1.0
+                ft = k if self.calibrado else 1.0
+                lv = getattr(self, "_larg_var", None)
+                av = getattr(self, "_alt_var", None)
+                try:
+                    if lv is not None: lv.set(f"{el['larg']*ft:.2f}")
+                    if av is not None: av.set(f"{el['alt']*ft:.2f}")
+                except Exception:
+                    pass
             return
         # Modo rotacao ativo
         if getattr(self, "_rotacionando", False) and self.sel_idx is not None:
@@ -1599,11 +1649,13 @@ class EditorCroqui(tk.Frame):
         if self._modo_via:
             self._release_via(e, x, y)
             return
+        if getattr(self, "_redimensionando", None):
+            self._redimensionando = None
+            self._redesenhar()
+            return
         if getattr(self, "_rotacionando", False):
             self._rotacionando = False
             self._redesenhar()
-            if self.sel_idx is not None:
-                self._mostrar_props(self.sel_idx)
             return
         if self.ferramenta in ("r1","r2","cota") and self.drag_start:
             self._finalizar_linha(x,y)
@@ -2016,6 +2068,36 @@ class EditorCroqui(tk.Frame):
         self._rodape(W,H)
         self._bussola(W, H)
 
+    def _draw_handles_canto(self, el, tx, ty):
+        """Desenha 4 handles de canto e guarda posicoes para hit-test."""
+        import math
+        tipo = el.get("tipo")
+        larg_padrao={"carro":28,"moto":20,"caminhao":36,"bicicleta":16,"pedestre":14,"sc":20}
+        alt_padrao= {"carro":14,"moto":8, "caminhao":16,"bicicleta":5, "pedestre":14,"sc":20}
+        if tipo not in larg_padrao:
+            self._canto_handles = []
+            return
+        larg = el.get("larg", larg_padrao[tipo]) * self.zoom
+        alt  = el.get("alt",  alt_padrao[tipo]) * self.zoom
+        ang  = math.radians(el.get("angulo", 0))
+        ca, sa = math.cos(ang), math.sin(ang)
+        hw, hh = larg/2, alt/2
+        # 4 cantos relativos ao centro (antes de rotacionar)
+        cantos = {
+            "nw": (-hw, -hh), "ne": (hw, -hh),
+            "se": (hw, hh),   "sw": (-hw, hh),
+        }
+        c = self.canvas
+        self._canto_handles = []
+        r = 5
+        for nome, (dx, dy) in cantos.items():
+            # Rotaciona o offset
+            hx = tx + dx*ca - dy*sa
+            hy = ty + dx*sa + dy*ca
+            c.create_rectangle(hx-r, hy-r, hx+r, hy+r,
+                               fill=FUNDO_PAINEL, outline=DOURADO, width=2)
+            self._canto_handles.append((hx, hy, r+4, nome))
+
     def _draw_handle_rot(self, el, tx, ty):
         """Desenha a bolinha de rotacao acima do objeto e guarda sua posicao."""
         tipo = el.get("tipo")
@@ -2053,6 +2135,7 @@ class EditorCroqui(tk.Frame):
         if sel and el.get("tipo") in ("carro","moto","caminhao",
                                        "bicicleta","pedestre","sc"):
             tx, ty = self._mt(el.get("x",0), el.get("y",0))
+            self._draw_handles_canto(el, tx, ty)
             self._draw_handle_rot(el, tx, ty)
 
     def _desenhar_el_orig(self,el,sel=False):

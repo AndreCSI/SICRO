@@ -1,0 +1,102 @@
+============================================================
+DIAGNOSTICO RESIZE
+============================================================
+
+1. Bloco veiculos (larg_padrao) no _desenhar_el_orig:
+    0: if tipo in larg_padrao:
+    1:             larg = el.get("larg", larg_padrao[tipo])
+    2:             alt  = el.get("alt",  alt_padrao[tipo])
+    3:             ang  = el.get("angulo", 0)
+    4:             cor  = el.get("cor", cores_padrao[tipo])
+    5: 
+    6:             # Busca função de arte e PNG do modelo
+    7:             arte_fn = None
+    8:             png_file = None
+    9:             modelo_chave = el.get("modelo")
+   10:             if modelo_chave and tipo in MODELOS_VEICULOS:
+   11:                 for m in MODELOS_VEICULOS[tipo]:
+   12:                     if m["chave"] == modelo_chave:
+   13:                         arte_fn = m["arte"]
+   14:                         png_file = m.get("png")
+   15:                         break
+   16:             if tipo == "bicicleta": arte_fn = _arte_bicicleta
+   17:             if tipo == "pedestre":  arte_fn = _arte_pedestre
+   18: 
+   19:             if arte_fn:
+   20:                 self._veiculo_arte(tx, ty, ang, larg, alt, cor, label, arte_fn, png=png_file)
+   21:             else:
+   22:                 self._veiculo(tx, ty, ang, larg, alt, cor, label)
+   23: 
+   24:         elif tipo=="sc":
+   25:             r=el.get("tamanho_sc",10)*self.zoom
+   26:             ang=el.get("angulo",0)
+   27:             rad=math.radians(ang)
+   28:             ca,sa=math.cos(rad),math.sin(rad)
+   29:             def rot(dx,dy): return tx+dx*ca-dy*sa, ty+dx*sa+dy*ca
+   30:             p1=rot(-r,-r); p2=rot(r,r); p3=rot(r,-r); p4=rot(-r,r)
+   31:             c.create_line(*p1,*p2,fill=COR_PERIGO,width=2)
+   32:             c.create_line(*p3,*p4,fill=COR_PERIGO,width=2)
+   33:             c.create_text(tx+r+4,ty-r,text="SC",fill=COR_PERIGO,
+   34:                           font=("Segoe UI",9,"bold"),anchor="w")
+   35: 
+   36:         elif tipo=="texto":
+   37:             fonte_nome = el.get("fonte","Segoe UI")
+   38:             fonte_tam  = el.get("tamanho", 12)
+   39:             fonte_bold = "bold" if el.get("negrito",False) else "normal"
+   40:             fonte_itl  = "italic" if el.get("italic
+
+2. _selecionar:
+    0:     def _selecionar(self, data):
+    1:         self._data = data
+    2:         self.entry.delete(0, tk.END)
+    3:         self.entry.insert(0, data.strftime("%d/%m/%Y"))
+    4:         self.destroy()
+    5: 
+    6: 
+    7: # ─────────────────────────────────────────────
+    8: #  DIÁLOGO DADOS DO CASO
+    9: # ─────────────────────────────────────────────
+   10: class DialogoDadosCaso(tk.Toplevel):
+
+3. _draw_handle_rot (referencia de padrao):
+    0:     def _draw_handle_rot(self, el, tx, ty):
+    1:         """Desenha a bolinha de rotacao acima do objeto e guarda sua posicao."""
+    2:         tipo = el.get("tipo")
+    3:         if tipo not in ("carro","moto","caminhao","bicicleta","pedestre","sc"):
+    4:             self._rot_handle_pos = None
+    5:             return
+    6:         # Calcula posicao acima do objeto, considerando o angulo
+    7:         import math
+    8:         larg_padrao={"carro":28,"moto":20,"caminhao":36,"bicicleta":16,"pedestre":14,"sc":20}
+    9:         alt_padrao= {"carro":14,"moto":8, "caminhao":16,"bicicleta":5, "pedestre":14,"sc":20}
+   10:         alt = el.get("alt", alt_padrao.get(tipo, 14))
+   11:         ang = math.radians(el.get("angulo", 0))
+   12:         # Distancia acima do objeto (em tela)
+   13:         dist = (alt/2 + 22) * self.zoom
+   14:         # Direcao "para cima" do objeto rotacionada
+   15:         hx = tx + dist * math.sin(ang)
+   16:         hy = ty - dist * math.cos(ang)
+   17:         c = self.canvas
+   18:         # Linha conectora
+   19:         c.create_line(tx, ty, hx, hy, fill=DOURADO,
+   20:                       width=max(1,int(self.zoom)), dash=(3,2))
+   21:         # Bolinha
+   22:         r = 7
+   23:         c.create_oval(hx-r, hy-r, hx+r, hy+r,
+   24:                       fill=FUNDO_PAINEL, outline=DOURADO, width=2)
+   25:         # Icone de rotacao (arco)
+   26:         c.create_arc(hx-4, hy-4, hx+4, hy+4,
+   27:                      start=30, extent=240, style="arc",
+   28:                      outline=DOURADO, width=2)
+   29:         # Guarda posicao para hit-test (em coordenadas de tela)
+   30:         self._rot_handle_pos = (hx, hy, r + 4)
+   31: 
+
+4. Wrapper _desenhar_el atual:
+    0:     def _desenhar_el(self, el, sel=False):
+    1:         self._desenhar_el_orig(el, sel)
+    2:         if sel and el.get("tipo") in ("carro","moto","caminhao",
+    3:                                        "bicicleta","pedestre","sc"):
+    4:             tx, ty = self._mt(el.get("x",0), el.get("y",0))
+    5:             self._draw_handle_rot(el, tx, ty)
+    6: 
