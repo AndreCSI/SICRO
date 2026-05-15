@@ -112,15 +112,34 @@ class TitleBar:
         self._win.geometry(f"+{e.x_root - self._drag_x}+{e.y_root - self._drag_y}")
 
     def _minimizar(self):
+        # iconify nao funciona com overrideredirect — usa withdraw
+        # mas precisa de uma janela fantasma na taskbar para restaurar
+        self._win.overrideredirect(False)
         self._win.iconify()
+        # Quando user clica na taskbar, restaura
+        self._win.bind('<Map>', self._restaurar_de_minimizar)
+
+    def _restaurar_de_minimizar(self, event=None):
+        if self._win.state() != 'iconic':
+            self._win.overrideredirect(True)
+            self._win.unbind('<Map>')
 
     def _maximizar(self, event=None):
-        if self._win.state() == "zoomed":
-            self._win.state("normal")
+        if getattr(self._win, '_maximizado', False):
+            # Restaura tamanho anterior
+            self._win.geometry(self._win._geo_anterior)
+            self._win._maximizado = False
             self._btn_max.config(text="□")
         else:
-            self._win.state("zoomed")
+            # Salva geometria atual antes de maximizar
+            self._win._geo_anterior = self._win.geometry()
+            # Tamanho da tela menos taskbar (48px)
+            sw = self._win.winfo_screenwidth()
+            sh = self._win.winfo_screenheight() - 48
+            self._win.geometry(f'{sw}x{sh}+0+0')
+            self._win._maximizado = True
             self._btn_max.config(text="❐")
+        self._win.after(50, lambda: self._win.overrideredirect(True))
 
     def _fechar(self):
         self._win.destroy()
@@ -132,11 +151,21 @@ class AppSicro(tk.Tk):
         self.withdraw()
         self.title("SICRO PCI/AP — Policia Cientifica do Amapa")
         self.configure(bg=COR_FUNDO)
-        self.state("zoomed")
         ttk.Style(self).theme_use("clam")
-        # Remove barra de titulo padrao do Windows
+        # Tamanho fixo inicial — confortavel para qualquer monitor
+        sw = self.winfo_screenwidth()
+        sh = self.winfo_screenheight()
+        w_inicial = min(1400, sw - 100)
+        h_inicial = min(800,  sh - 100)
+        x = (sw - w_inicial) // 2
+        y = (sh - h_inicial) // 2
+        self.geometry(f'{w_inicial}x{h_inicial}+{x}+{y}')
+        self.update_idletasks()
         self.overrideredirect(True)
-        # Barra de titulo customizada do SICRO
+        self.after(10, self._setup_taskbar)
+        # Estado: NAO maximizado (icone do botao = □)
+        self._geo_anterior = f'{w_inicial}x{h_inicial}+{x}+{y}'
+        self._maximizado = False
         self._titlebar = TitleBar(self)
         # Atalhos de teclado
         self.bind('<Escape>',  lambda e: self.state('normal'))
@@ -156,6 +185,13 @@ class AppSicro(tk.Tk):
         splash = SplashScreen(self, img_brasao=self._brasao)
         self.update()
         self.after(4000, lambda: self._pos_splash(splash))
+
+    def _setup_taskbar(self):
+        """Garante presenca na taskbar com overrideredirect."""
+        try:
+            self.wm_attributes('-toolwindow', False)
+        except Exception:
+            pass
 
     def _pos_splash(self, splash):
         splash.fechar()

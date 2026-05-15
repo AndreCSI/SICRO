@@ -169,8 +169,11 @@ class TelaInicial(tk.Frame):
                  fg=TEXTO_SECUNDARIO).pack(anchor='w', padx=32)
         tk.Frame(a, bg=FUNDO_BASE, height=20).pack()
         # Cards
-        cf = tk.Frame(a, bg=FUNDO_BASE)
-        cf.pack(fill='x', padx=32)
+        # Container externo que limita largura dos cards
+        outer = tk.Frame(a, bg=FUNDO_BASE)
+        outer.pack(fill='x', padx=32)
+        cf = tk.Frame(outer, bg=FUNDO_BASE)
+        cf.pack(side='left')
         acoes = [
             ('Novo Croqui Manual',
              'Comece um croqui do zero\nem uma tela vazia.',
@@ -213,13 +216,19 @@ class TelaInicial(tk.Frame):
                   command=self._abrir_sel).pack(side='left')
 
     def _card_acao(self, parent, titulo, desc, cor_acento, img_chave, cmd):
-        IMG_H = 140
-        card = tk.Frame(parent, bg=FUNDO_CARD, cursor='hand2')
-        card.pack(side='left', fill='x', expand=True, padx=(0,12))
+        IMG_W = 320
+        IMG_H = 160
+        card = tk.Frame(parent, bg=FUNDO_CARD, cursor='hand2',
+                        width=IMG_W)
+        card.pack(side='left', padx=(0,14))
+        card.pack_propagate(False)
+        # Altura calculada: imagem + 2px linha + ~120 conteudo
+        card.config(height=IMG_H + 130)
         # Imagem de fundo — Canvas com altura fixa
-        img_canvas = tk.Canvas(card, height=IMG_H, bg=FUNDO_CARD,
-                              highlightthickness=0)
-        img_canvas.pack(fill='x')
+        img_canvas = tk.Canvas(card, height=IMG_H, width=IMG_W,
+                               bg=FUNDO_CARD, highlightthickness=0)
+        img_canvas.pack(fill='x', expand=False)
+        img_canvas.pack_propagate(False)
         def _draw_img(event, ic=img_canvas, ck=img_chave, ih=IMG_H, ca=cor_acento):
             w = ic.winfo_width()
             if w < 2: return
@@ -235,7 +244,7 @@ class TelaInicial(tk.Frame):
         tk.Frame(card, bg=cor_acento, height=2).pack(fill='x')
         # Conteudo
         inner = tk.Frame(card, bg=FUNDO_CARD)
-        inner.pack(fill='both', expand=True, padx=14, pady=12)
+        inner.pack(fill='x', padx=14, pady=12)
         tk.Label(inner, text=titulo, font=FONTE_BODY_BOLD,
                  bg=FUNDO_CARD, fg=TEXTO_PRIMARIO, anchor='w').pack(fill='x')
         tk.Label(inner, text=desc, font=FONTE_SMALL,
