@@ -727,28 +727,99 @@ class EditorCroqui(tk.Frame):
     #  UI
     # ──────────────────────────────────────────
     def _build_ui(self):
-        # Barra superior
-        barra = tk.Frame(self, bg=COR_PAINEL)
-        barra.pack(fill="x")
-        tk.Frame(barra, bg=AMARELO, height=3).pack(fill="x")
-        info = tk.Frame(barra, bg=COR_PAINEL)
-        info.pack(fill="x", padx=12, pady=6)
-        bo = self.dados_caso.get("bo","—")
-        local = self.dados_caso.get("local","—")
-        tk.Label(info, text=f"BO {bo}  ·  {local}",
-                 font=("Segoe UI",10,"bold"), bg=COR_PAINEL, fg=BRANCO).pack(side="left")
-        self.label_escala = tk.Label(info,
+        # ═══════════════════════════════════════════
+        # HEADER MODERNO — substitui barra antiga
+        # ═══════════════════════════════════════════
+        header = tk.Frame(self, bg=FUNDO_PAINEL, height=48)
+        header.pack(fill="x")
+        header.pack_propagate(False)
+
+        # Faixa dourada inferior (separa do corpo)
+        sep_inf = tk.Frame(self, bg=AZUL_BORDA, height=1)
+        sep_inf.pack(fill="x")
+
+        # ─── ESQUERDA: BO + local editaveis ───
+        esq = tk.Frame(header, bg=FUNDO_PAINEL)
+        esq.pack(side="left", fill="y", padx=16)
+
+        bo    = self.dados_caso.get("bo", "—")
+        local = self.dados_caso.get("local", "—")
+
+        # Label BO clicavel
+        self._lbl_bo = tk.Label(esq,
+            text=f"BO {bo}",
+            font=("Segoe UI", 11, "bold"),
+            bg=FUNDO_PAINEL, fg=TEXTO_PRIMARIO,
+            cursor="hand2")
+        self._lbl_bo.pack(side="left", pady=14)
+        self._lbl_bo.bind("<Button-1>", lambda e: self._editar_caso("bo"))
+
+        # Separador
+        tk.Label(esq, text="  ·  ", font=("Segoe UI", 10),
+                 bg=FUNDO_PAINEL,
+                 fg=TEXTO_TERCIARIO).pack(side="left", pady=14)
+
+        # Label Local clicavel
+        self._lbl_local = tk.Label(esq,
+            text=local,
+            font=("Segoe UI", 10),
+            bg=FUNDO_PAINEL, fg=TEXTO_SECUNDARIO,
+            cursor="hand2")
+        self._lbl_local.pack(side="left", pady=14)
+        self._lbl_local.bind("<Button-1>", lambda e: self._editar_caso("local"))
+
+        # Icone lapis pequeno
+        tk.Label(esq, text="  ✎", font=("Segoe UI", 9),
+                 bg=FUNDO_PAINEL,
+                 fg=TEXTO_TERCIARIO).pack(side="left", pady=14)
+
+        # ─── DIREITA: botoes ───
+        dir_ = tk.Frame(header, bg=FUNDO_PAINEL)
+        dir_.pack(side="right", fill="y", padx=10)
+
+        # Toggle Modo Vetorial (status de calibracao no modo drone)
+        self.label_escala = tk.Label(dir_,
             text="📐 Não calibrado" if self.modo=="drone" else "Modo vetorial",
-            font=FONTE_PEQ, bg=COR_PAINEL,
-            fg=COR_AVISO if self.modo=="drone" else COR_SUCESSO)
-        self.label_escala.pack(side="right", padx=8)
-        for txt, cmd in [("💾 Salvar",self._salvar),
-                          ("📄 PDF",self._exportar_pdf),
-                          ("🏠 Início",self._voltar)]:
-            tk.Button(info, text=txt, font=FONTE_PEQ, cursor="hand2",
-                      bg=COR_CARD, fg=BRANCO, activebackground=AZUL_MEDIO,
-                      relief="flat", padx=10, pady=3,
-                      command=cmd).pack(side="right", padx=2)
+            font=FONTE_SMALL_BOLD,
+            bg=FUNDO_PAINEL,
+            fg=COR_AVISO if self.modo=="drone" else DOURADO,
+            padx=12)
+        self.label_escala.pack(side="right", padx=8, pady=12)
+
+        # Separador vertical
+        tk.Frame(dir_, bg=AZUL_BORDA, width=1).pack(side="right",
+                                                     fill="y", padx=4, pady=8)
+
+        # Botoes de acao
+        def _btn_header(parent, icone, texto, cmd, cor_acento=None):
+            f = tk.Frame(parent, bg=FUNDO_PAINEL, cursor="hand2")
+            f.pack(side="right", padx=2, pady=8)
+            inner = tk.Frame(f, bg=FUNDO_PAINEL)
+            inner.pack(padx=10, pady=4)
+            tk.Label(inner, text=icone, font=("Segoe UI", 11),
+                     bg=FUNDO_PAINEL,
+                     fg=cor_acento or TEXTO_SECUNDARIO).pack(side="left", padx=(0,4))
+            tk.Label(inner, text=texto, font=FONTE_SMALL,
+                     bg=FUNDO_PAINEL,
+                     fg=TEXTO_PRIMARIO).pack(side="left")
+            def _hin(e):
+                f.config(bg=FUNDO_HOVER)
+                inner.config(bg=FUNDO_HOVER)
+                for w in inner.winfo_children(): w.config(bg=FUNDO_HOVER)
+            def _hout(e):
+                f.config(bg=FUNDO_PAINEL)
+                inner.config(bg=FUNDO_PAINEL)
+                for w in inner.winfo_children(): w.config(bg=FUNDO_PAINEL)
+            def _cl(e): cmd()
+            for w in [f, inner] + list(inner.winfo_children()):
+                w.bind("<Enter>", _hin)
+                w.bind("<Leave>", _hout)
+                w.bind("<Button-1>", _cl)
+            return f
+
+        _btn_header(dir_, "💾", "Salvar", self._salvar, DOURADO)
+        _btn_header(dir_, "📄", "PDF",    self._exportar_pdf)
+        _btn_header(dir_, "🏠", "Início", self._voltar)
 
         # Corpo
         corpo = tk.Frame(self, bg=COR_FUNDO)
@@ -910,11 +981,53 @@ class EditorCroqui(tk.Frame):
                                    command=self._abrir_redimensionar)
         self.btn_redim.pack(fill="x", padx=4, pady=(6,2))
 
-        # Status bar
-        self.status = tk.Label(self, text="Pronto",
-                               font=FONTE_MONO, bg=COR_PAINEL,
-                               fg=CINZA_MEDIO, anchor="w")
-        self.status.pack(fill="x", side="bottom", padx=8, pady=2)
+        # ═══════════════════════════════════════
+        # BARRA DE STATUS ESTRUTURADA
+        # ═══════════════════════════════════════
+        sbar = tk.Frame(self, bg=FUNDO_PAINEL, height=28)
+        sbar.pack(fill="x", side="bottom")
+        sbar.pack_propagate(False)
+        # Separador superior
+        tk.Frame(self, bg=AZUL_BORDA, height=1).pack(fill="x", side="bottom")
+
+        def _campo(parent, label, valor, fg_valor=None, side="left"):
+            f = tk.Frame(parent, bg=FUNDO_PAINEL)
+            f.pack(side=side, padx=10, pady=6)
+            tk.Label(f, text=label + ":", font=FONTE_MICRO,
+                     bg=FUNDO_PAINEL, fg=TEXTO_TERCIARIO).pack(side="left")
+            lbl = tk.Label(f, text=" " + str(valor), font=FONTE_SMALL_BOLD,
+                           bg=FUNDO_PAINEL,
+                           fg=fg_valor or TEXTO_PRIMARIO)
+            lbl.pack(side="left")
+            return lbl
+
+        def _sep(parent):
+            tk.Frame(parent, bg=AZUL_BORDA, width=1).pack(
+                side="left", fill="y", padx=2, pady=6)
+
+        # Campos da esquerda
+        self._st_ferramenta = _campo(sbar, "Ferramenta", "Selecionar", DOURADO)
+        _sep(sbar)
+        self._st_escala = _campo(sbar, "Escala",
+            f"1 px = {1.0:.3f} m" if not self.calibrado else f"k = {self.k:.4f} m/px")
+        _sep(sbar)
+        self._st_zoom = _campo(sbar, "Zoom", "100%")
+        _sep(sbar)
+        self._st_xy = _campo(sbar, "X, Y", "0.00 m, 0.00 m")
+
+        # Campos da direita
+        self._st_camada = _campo(sbar, "Camada", "—",
+            fg_valor=TEXTO_SECUNDARIO, side="right")
+        _sep(sbar)
+        self._st_objetos = _campo(sbar, "Objetos",
+            str(len(self.elementos)), side="right")
+
+        # Label de status texto (mensagens temporarias — mantém compat)
+        self.status = tk.Label(sbar, text="Pronto",
+                               font=FONTE_SMALL,
+                               bg=FUNDO_PAINEL,
+                               fg=TEXTO_TERCIARIO, anchor="w")
+        self.status.pack(side="left", padx=20, pady=6, fill="x", expand=True)
 
         self._set_ferr("sel")
         # Ctrl+Z e Delete na janela raiz
@@ -929,6 +1042,9 @@ class EditorCroqui(tk.Frame):
     #  SISTEMA DE CAMADAS
     # ──────────────────────────────────────────
     def _atualizar_camadas(self):
+        # Atualiza contador na barra de status
+        if hasattr(self, "_st_objetos"):
+            self._st_objetos.config(text=" " + str(len(self.elementos)))
         """Sincroniza o Listbox com self.elementos (ordem invertida = topo primeiro)."""
         sel_atual = self.sel_idx
         self.lb_camadas.delete(0, tk.END)
@@ -1112,6 +1228,9 @@ class EditorCroqui(tk.Frame):
         wx,wy=self._tm(cx,cy)
         self.zoom=max(0.1,min(10.0,self.zoom*f))
         self.pan_x=cx-wx*self.zoom; self.pan_y=cy-wy*self.zoom
+        if hasattr(self, '_st_zoom'):
+            self._st_zoom.config(text=f' {int(self.zoom*100)}%')
+
         self._redesenhar()
 
     def _reset_view(self):
@@ -1930,6 +2049,23 @@ class EditorCroqui(tk.Frame):
     # ──────────────────────────────────────────
     #  SALVAR / PDF
     # ──────────────────────────────────────────
+    def _editar_caso(self, campo):
+        """Permite editar BO ou local inline via simpledialog."""
+        from tkinter import simpledialog
+        valor_atual = self.dados_caso.get(campo, "")
+        labels = {"bo": "Numero do BO:", "local": "Local da ocorrencia:"}
+        novo = simpledialog.askstring(
+            "Editar " + campo,
+            labels.get(campo, campo + ":"),
+            initialvalue=valor_atual,
+            parent=self.winfo_toplevel())
+        if novo is not None and novo.strip():
+            self.dados_caso[campo] = novo.strip()
+            if campo == "bo":
+                self._lbl_bo.config(text=f"BO {novo.strip()}")
+            elif campo == "local":
+                self._lbl_local.config(text=novo.strip())
+
     def _salvar(self):
         dados={**self.dados_caso,"modo":self.modo,"k":self.k,
                "u_k":self.u_k,"calibrado":self.calibrado,
