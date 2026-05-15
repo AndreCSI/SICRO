@@ -825,66 +825,142 @@ class EditorCroqui(tk.Frame):
         corpo = tk.Frame(self, bg=COR_FUNDO)
         corpo.pack(fill="both", expand=True)
 
-        # ── Toolbar esquerda ──
-        self._tb = tk.Frame(corpo, bg=COR_PAINEL, width=56)
+        # ═══════════════════════════════════════
+        # TOOLBAR LATERAL EXPANDIDA (180px)
+        # icone + label textual + estado visual
+        # ═══════════════════════════════════════
+        self._tb = tk.Frame(corpo, bg=FUNDO_PAINEL, width=180)
         self._tb.pack(side="left", fill="y")
         self._tb.pack_propagate(False)
         tb = self._tb
 
-        # Faixa topo
-        tk.Frame(tb, bg=AMARELO, height=2).pack(fill="x")
+        # Borda direita
+        tk.Frame(tb, bg=AZUL_BORDA, width=1).pack(side="right", fill="y")
 
-        # Botões de ferramentas normais
+        # Container interno
+        inner = tk.Frame(tb, bg=FUNDO_PAINEL)
+        inner.pack(fill="both", expand=True)
+
+        # Topo: espacamento
+        tk.Frame(inner, bg=FUNDO_PAINEL, height=12).pack()
+
+        # Helper para criar botoes
+        def _criar_btn_ferr(parent, chave, icone, dica, fn_set):
+            f = tk.Frame(parent, bg=FUNDO_PAINEL, cursor="hand2")
+            f.pack(fill="x", pady=1)
+            # Indicador lateral (3px)
+            ind = tk.Frame(f, bg=FUNDO_PAINEL, width=3)
+            ind.pack(side="left", fill="y")
+            # Icone
+            lbl_ico = tk.Label(f, text=icone, font=("Segoe UI", 12),
+                               bg=FUNDO_PAINEL, fg=TEXTO_SECUNDARIO,
+                               width=2)
+            lbl_ico.pack(side="left", padx=(8,4), pady=6)
+            # Label
+            lbl_txt = tk.Label(f, text=dica.split("—")[0].split("/")[0].strip(),
+                               font=FONTE_SMALL,
+                               bg=FUNDO_PAINEL, fg=TEXTO_SECUNDARIO,
+                               anchor="w")
+            lbl_txt.pack(side="left", fill="x", expand=True)
+            # Hover
+            def _hin(e):
+                if not getattr(f, "_ativo", False):
+                    f.config(bg=FUNDO_HOVER)
+                    ind.config(bg=FUNDO_HOVER)
+                    lbl_ico.config(bg=FUNDO_HOVER)
+                    lbl_txt.config(bg=FUNDO_HOVER)
+                if hasattr(self, "status"):
+                    self.status.config(text=dica)
+            def _hout(e):
+                if not getattr(f, "_ativo", False):
+                    f.config(bg=FUNDO_PAINEL)
+                    ind.config(bg=FUNDO_PAINEL)
+                    lbl_ico.config(bg=FUNDO_PAINEL)
+                    lbl_txt.config(bg=FUNDO_PAINEL)
+            def _cl(e):
+                fn_set(chave)
+            for w in [f, ind, lbl_ico, lbl_txt]:
+                w.bind("<Enter>", _hin)
+                w.bind("<Leave>", _hout)
+                w.bind("<Button-1>", _cl)
+            # Armazena refs para poder marcar ativo
+            f._ind = ind
+            f._ico = lbl_ico
+            f._txt = lbl_txt
+            return f
+
+        # Botoes de ferramentas normais
         self.btns_ferr = {}
         for chave, icone, dica in self.FERRAMENTAS:
-            btn = tk.Button(tb, text=icone, font=("Segoe UI",12),
-                            width=3, cursor="hand2",
-                            bg=COR_PAINEL, fg=BRANCO,
-                            activebackground=AZUL_MEDIO, relief="flat",
-                            command=lambda c=chave: self._set_ferr(c))
-            btn.pack(pady=1, padx=3)
-            btn.bind("<Enter>", lambda e,d=dica: self.status.config(text=d))
-            self.btns_ferr[chave] = btn
+            f = _criar_btn_ferr(inner, chave, icone, dica, self._set_ferr)
+            self.btns_ferr[chave] = f
 
-        # Botões de ferramentas de via (ocultos inicialmente)
+        # Botoes de ferramentas de via (criados mas nao empacotados)
         self.btns_via = {}
         for chave, icone, dica in FERRAMENTAS_VIA:
-            btn = tk.Button(tb, text=icone, font=("Segoe UI",12),
-                            width=3, cursor="hand2",
-                            bg=COR_PAINEL, fg=BRANCO,
-                            activebackground=AZUL_MEDIO, relief="flat",
-                            command=lambda c=chave: self._set_ferr_via(c))
-            btn.bind("<Enter>", lambda e,d=dica: self.status.config(text=d))
-            self.btns_via[chave] = btn
-            # NÃO faz pack ainda — serão mostrados ao entrar no modo via
+            f = _criar_btn_ferr(inner, chave, icone, dica, self._set_ferr_via)
+            f.pack_forget()
+            self.btns_via[chave] = f
 
-        # Botões de zoom (sempre visíveis)
-        self._sep_zoom = tk.Frame(tb, bg=COR_BORDA, height=1)
-        self._sep_zoom.pack(fill="x", pady=3)
+        # Separador antes do zoom
+        self._sep_zoom = tk.Frame(inner, bg=AZUL_BORDA, height=1)
+        self._sep_zoom.pack(fill="x", padx=12, pady=8)
+
+        # Botoes de zoom
+        def _criar_btn_zoom(parent, icone, label, cmd):
+            f = tk.Frame(parent, bg=FUNDO_PAINEL, cursor="hand2")
+            f.pack(fill="x", pady=1)
+            tk.Frame(f, bg=FUNDO_PAINEL, width=3).pack(side="left", fill="y")
+            tk.Label(f, text=icone, font=("Segoe UI", 13),
+                     bg=FUNDO_PAINEL, fg=TEXTO_SECUNDARIO,
+                     width=2).pack(side="left", padx=(8,4), pady=4)
+            tk.Label(f, text=label, font=FONTE_SMALL,
+                     bg=FUNDO_PAINEL, fg=TEXTO_SECUNDARIO,
+                     anchor="w").pack(side="left", fill="x", expand=True)
+            def _hin(e):
+                f.config(bg=FUNDO_HOVER)
+                for w in f.winfo_children():
+                    try: w.config(bg=FUNDO_HOVER)
+                    except: pass
+            def _hout(e):
+                f.config(bg=FUNDO_PAINEL)
+                for w in f.winfo_children():
+                    try: w.config(bg=FUNDO_PAINEL)
+                    except: pass
+            def _cl(e): cmd()
+            for w in [f] + list(f.winfo_children()):
+                w.bind("<Enter>", _hin)
+                w.bind("<Leave>", _hout)
+                w.bind("<Button-1>", _cl)
+            return f
+
         self._btns_zoom = []
-        for txt, cmd in [("+",lambda: self._zoom_d(1.2)),
-                          ("−",lambda: self._zoom_d(1/1.2)),
-                          ("⌂",self._reset_view)]:
-            b = tk.Button(tb, text=txt, font=("Segoe UI",13), width=3,
-                          bg=COR_PAINEL, fg=BRANCO, relief="flat", cursor="hand2",
-                          command=cmd)
-            b.pack(pady=1, padx=3)
-            self._btns_zoom.append(b)
+        self._btns_zoom.append(_criar_btn_zoom(inner, "+", "Zoom +",
+                                                lambda: self._zoom_d(1.2)))
+        self._btns_zoom.append(_criar_btn_zoom(inner, "−", "Zoom −",
+                                                lambda: self._zoom_d(1/1.2)))
+        self._btns_zoom.append(_criar_btn_zoom(inner, "⌂", "Zoom total",
+                                                self._reset_view))
 
-        # Botão 🛣 — base da toolbar, sempre visível
-        tk.Frame(tb, height=1, bg=COR_FUNDO).pack(fill="x", expand=True)
-        tk.Frame(tb, height=2, bg=AMARELO).pack(fill="x")
-        self._btn_modo_via = tk.Button(tb, text="🛣",
-                                       font=("Segoe UI",18),
-                                       width=3, cursor="hand2",
-                                       bg="#162810", fg=AMARELO,
-                                       activebackground="#2A4A1A",
-                                       relief="flat", pady=4,
-                                       command=self._toggle_modo_via)
-        self._btn_modo_via.pack(fill="x", padx=2, pady=2)
-        self._btn_modo_via.bind("<Enter>", lambda e: self.status.config(
-            text="Editor de Via  —  alterna modo arte"))
-        tk.Frame(tb, height=2, bg=AMARELO).pack(fill="x")
+        # Botao Modo Via na base
+        tk.Frame(inner, bg=FUNDO_PAINEL).pack(fill="x", expand=True)
+        tk.Frame(inner, bg=AZUL_BORDA, height=1).pack(fill="x")
+
+        self._btn_modo_via = tk.Frame(inner, bg="#162810", cursor="hand2")
+        self._btn_modo_via.pack(fill="x")
+        tk.Frame(self._btn_modo_via, bg=DOURADO, width=3).pack(side="left", fill="y")
+        tk.Label(self._btn_modo_via, text="🛣",
+                 font=("Segoe UI", 14),
+                 bg="#162810", fg=DOURADO,
+                 width=2).pack(side="left", padx=(8,4), pady=10)
+        tk.Label(self._btn_modo_via, text="Modo Via",
+                 font=FONTE_SMALL_BOLD,
+                 bg="#162810", fg=DOURADO,
+                 anchor="w").pack(side="left", fill="x", expand=True)
+        for w in [self._btn_modo_via] + list(self._btn_modo_via.winfo_children()):
+            w.bind("<Button-1>", lambda e: self._toggle_modo_via())
+            w.bind("<Enter>", lambda e: hasattr(self, "status") and
+                   self.status.config(text="Editor de Via — alterna modo arte"))
 
         # ── Canvas central ──
         cf = tk.Frame(corpo, bg=COR_FUNDO)
@@ -962,15 +1038,19 @@ class EditorCroqui(tk.Frame):
         # --- Separador ---
         tk.Frame(pd, bg=AMARELO, height=1).pack(fill="x", padx=4)
 
-        # --- Seção Propriedades ---
-        tk.Label(pd, text="Propriedades", font=FONTE_SUB,
-                 bg=COR_PAINEL, fg=AMARELO).pack(pady=(6,2))
-        self.label_prop = tk.Label(pd,
-                                   text="Selecione um\nelemento",
-                                   font=FONTE_PEQ,
-                                   bg=COR_PAINEL, fg=CINZA_CLARO,
-                                   justify="left", wraplength=200)
-        self.label_prop.pack(padx=10, anchor="w")
+        # --- Seção Propriedades (painel rico) ---
+        tk.Label(pd, text="Propriedades", font=FONTE_H3,
+                 bg=FUNDO_PAINEL, fg=DOURADO).pack(pady=(10,4), anchor="w", padx=10)
+        # Container que recebera os campos editaveis
+        self._props = tk.Frame(pd, bg=FUNDO_PAINEL)
+        self._props.pack(fill="x", padx=10, pady=2)
+        # Placeholder inicial
+        self.label_prop = tk.Label(self._props,
+            text="Selecione um\nelemento no canvas",
+            font=FONTE_SMALL,
+            bg=FUNDO_PAINEL, fg=TEXTO_TERCIARIO,
+            justify="left", wraplength=240)
+        self.label_prop.pack(anchor="w", pady=4)
 
         # Botão redimensionar
         self.btn_redim = tk.Button(pd, text="⇲  Redimensionar",
@@ -1128,24 +1208,142 @@ class EditorCroqui(tk.Frame):
         self._redesenhar()
 
     def _mostrar_props(self, idx):
+        """Mostra propriedades editaveis do elemento selecionado."""
         el = self.elementos[idx]
-        linhas = []
-        icone, nome = TIPO_INFO.get(el["tipo"],("?",el["tipo"]))
-        linhas.append(f"{icone}  {nome}")
-        if el.get("label"):      linhas.append(f"Rótulo: {el['label']}")
-        if el.get("angulo") is not None and el["tipo"] != "_rotatoria":
-            linhas.append(f"Ângulo: {el.get('angulo',0):.0f}°")
-        if el.get("larg"):       linhas.append(f"Largura: {el['larg']} px")
-        if el.get("alt"):        linhas.append(f"Altura: {el['alt']} px")
-        self.label_prop.config(text="\n".join(linhas))
 
-        # Habilita botão redimensionar apenas para tipos redimensionáveis
+        # Se nao tem painel novo, usa fallback antigo
+        if not hasattr(self, "_props"):
+            linhas = []
+            icone, nome = TIPO_INFO.get(el["tipo"], ("?", el["tipo"]))
+            linhas.append(f"{icone}  {nome}")
+            if el.get("label"):      linhas.append(f"Rotulo: {el['label']}")
+            if el.get("angulo") is not None and el["tipo"] != "_rotatoria":
+                linhas.append(f"Angulo: {el.get('angulo',0):.0f}graus")
+            if el.get("larg"):       linhas.append(f"Largura: {el['larg']} px")
+            if el.get("alt"):        linhas.append(f"Altura: {el['alt']} px")
+            if hasattr(self, "label_prop"):
+                self.label_prop.config(text="\n".join(linhas))
+            tipos_redim = ("carro","moto","caminhao","bicicleta",
+                           "pedestre","sc","via_h","via_v","r1","r2")
+            if el["tipo"] in tipos_redim:
+                self.btn_redim.config(state="normal", fg=DOURADO)
+            else:
+                self.btn_redim.config(state="disabled", fg=TEXTO_TERCIARIO)
+            return
+
+        # ──── PAINEL NOVO COM CAMPOS EDITAVEIS ────
+        # Limpa campos antigos
+        for w in self._props.winfo_children():
+            w.destroy()
+
+        icone, nome = TIPO_INFO.get(el["tipo"], ("?", el["tipo"]))
+
+        # Cabecalho
+        hdr = tk.Frame(self._props, bg=FUNDO_PAINEL)
+        hdr.pack(fill="x", pady=(0,8))
+        tk.Label(hdr, text=icone, font=("Segoe UI", 14),
+                 bg=FUNDO_PAINEL, fg=DOURADO).pack(side="left")
+        tk.Label(hdr, text="  " + nome, font=FONTE_BODY_BOLD,
+                 bg=FUNDO_PAINEL, fg=TEXTO_PRIMARIO).pack(side="left")
+
+        def _campo(label, valor_str, on_change):
+            """Cria um campo Entry editavel."""
+            f = tk.Frame(self._props, bg=FUNDO_PAINEL)
+            f.pack(fill="x", pady=2)
+            tk.Label(f, text=label, font=FONTE_MICRO,
+                     bg=FUNDO_PAINEL, fg=TEXTO_TERCIARIO,
+                     width=11, anchor="w").pack(side="left")
+            var = tk.StringVar(value=valor_str)
+            e = tk.Entry(f, textvariable=var, font=FONTE_SMALL,
+                         bg=FUNDO_CARD, fg=TEXTO_PRIMARIO,
+                         insertbackground=DOURADO,
+                         relief="flat", bd=4, width=10,
+                         highlightthickness=1,
+                         highlightcolor=DOURADO,
+                         highlightbackground=AZUL_BORDA)
+            e.pack(side="left", fill="x", expand=True)
+            def _apply(event=None):
+                try:
+                    on_change(var.get())
+                    self._redesenhar()
+                except Exception:
+                    var.set(valor_str)
+            e.bind("<Return>", _apply)
+            e.bind("<FocusOut>", _apply)
+
+        # Rotulo
+        if el.get("label") is not None:
+            def set_label(v):
+                el["label"] = v
+            _campo("Rotulo", str(el.get("label", "")), set_label)
+
+        # Posicao
+        k = self.k if (self.calibrado and self.k) else 1.0
+        unidade = "m" if self.calibrado else "px"
+        fator = k if self.calibrado else 1.0
+
+        if "x" in el and "y" in el:
+            def set_x(v):
+                el["x"] = float(v) / fator
+            def set_y(v):
+                el["y"] = float(v) / fator
+            _campo(f"Pos X ({unidade})",
+                   f"{el.get('x', 0) * fator:.2f}", set_x)
+            _campo(f"Pos Y ({unidade})",
+                   f"{el.get('y', 0) * fator:.2f}", set_y)
+
+        # Angulo
+        if el.get("angulo") is not None and el["tipo"] != "_rotatoria":
+            def set_ang(v):
+                el["angulo"] = float(v)
+            _campo("Rotacao", f"{el.get('angulo', 0):.1f}", set_ang)
+
+        # Largura
+        if el.get("larg") is not None:
+            def set_larg(v):
+                el["larg"] = float(v) / fator
+            _campo(f"Largura ({unidade})",
+                   f"{el['larg'] * fator:.2f}", set_larg)
+
+        # Altura
+        if el.get("alt") is not None:
+            def set_alt(v):
+                el["alt"] = float(v) / fator
+            _campo(f"Altura ({unidade})",
+                   f"{el['alt'] * fator:.2f}", set_alt)
+
+        # Cor (com seletor)
+        if el.get("cor"):
+            cf = tk.Frame(self._props, bg=FUNDO_PAINEL)
+            cf.pack(fill="x", pady=2)
+            tk.Label(cf, text="Cor", font=FONTE_MICRO,
+                     bg=FUNDO_PAINEL, fg=TEXTO_TERCIARIO,
+                     width=11, anchor="w").pack(side="left")
+            cor_atual = el.get("cor", "#888888")
+            swatch = tk.Frame(cf, bg=cor_atual, width=24, height=18,
+                              cursor="hand2", relief="solid", bd=1)
+            swatch.pack(side="left", padx=(0,6))
+            swatch.pack_propagate(False)
+            def _trocar_cor(event):
+                from tkinter import colorchooser
+                cor = colorchooser.askcolor(
+                    initialcolor=el.get("cor", "#888888"),
+                    parent=self.winfo_toplevel())
+                if cor and cor[1]:
+                    el["cor"] = cor[1]
+                    swatch.config(bg=cor[1])
+                    self._redesenhar()
+            swatch.bind("<Button-1>", _trocar_cor)
+            tk.Label(cf, text=cor_atual, font=FONTE_MICRO,
+                     bg=FUNDO_PAINEL, fg=TEXTO_SECUNDARIO).pack(side="left")
+
+        # Botao redimensionar
         tipos_redim = ("carro","moto","caminhao","bicicleta",
                        "pedestre","sc","via_h","via_v","r1","r2")
         if el["tipo"] in tipos_redim:
-            self.btn_redim.config(state="normal", fg=AMARELO)
+            self.btn_redim.config(state="normal", fg=DOURADO)
         else:
-            self.btn_redim.config(state="disabled", fg=CINZA_CLARO)
+            self.btn_redim.config(state="disabled", fg=TEXTO_TERCIARIO)
 
     def _abrir_redimensionar(self):
         if self.sel_idx is None: return
@@ -1201,15 +1399,11 @@ class EditorCroqui(tk.Frame):
     def _set_ferr_via(self, f):
         """Define ferramenta no modo via."""
         self._ferr_via = f
-        for k, btn in self.btns_via.items():
-            btn.config(bg=AZUL_MEDIO if k==f else COR_PAINEL)
         dica = next((d for ch,i,d in FERRAMENTAS_VIA if ch==f), f)
         self.status.config(text=f"🛣 Via: {dica}  — clique e arraste")
 
     def _set_ferr(self, c):
         self.ferramenta = c
-        for k, btn in self.btns_ferr.items():
-            btn.config(bg=AZUL_MEDIO if k==c else COR_PAINEL)
         if c == "calibrar" and self.modo == "zero":
             messagebox.showinfo("Calibração","Disponível apenas no modo drone.")
             self._set_ferr("sel")
@@ -2325,8 +2519,6 @@ class EditorVia(tk.Toplevel):
             try: self.canvas.delete(tid)
             except: pass
         self._motion_ids=[]
-        for k, btn in self.btns_via.items():
-            btn.config(bg=AZUL_MEDIO if k==f else COR_PAINEL)
         dica = next((d for c,i,d in FERRAMENTAS_VIA if c==f), f)
         self.status.config(text=f"Ferramenta: {dica}  —  clique e arraste")
         self.canvas.config(cursor="crosshair")
