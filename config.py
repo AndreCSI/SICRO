@@ -1,3 +1,27 @@
+# Importa cores e fontes do tema centralizado
+try:
+    from tema import (
+        FUNDO_BASE, FUNDO_PAINEL, FUNDO_CARD, FUNDO_HOVER,
+        DOURADO, DOURADO_CLARO, AZUL_BORDA, AZUL_MEDIO, AZUL_CLARO,
+        TEXTO_PRIMARIO, TEXTO_SECUNDARIO, TEXTO_TERCIARIO,
+    )
+    # Substitui aliases antigos pelos novos
+    AZUL_ESCURO   = FUNDO_PAINEL
+    BRANCO        = TEXTO_PRIMARIO
+    CINZA_CLARO   = TEXTO_SECUNDARIO
+    CINZA_MEDIO   = TEXTO_TERCIARIO
+    PRETO_SOFT    = FUNDO_BASE
+    AMARELO       = DOURADO
+    COR_FUNDO     = FUNDO_BASE
+    COR_PAINEL    = FUNDO_PAINEL
+    COR_CARD      = FUNDO_CARD
+    COR_BORDA     = AZUL_BORDA
+    COR_TEXTO     = TEXTO_PRIMARIO
+    COR_TEXTO_SEC = TEXTO_SECUNDARIO
+    _TEMA_OK = True
+except ImportError:
+    _TEMA_OK = False
+
 """
 config.py — Constantes globais do SICRO PCI/AP
 Paleta de cores, fontes, diretórios, listas e catálogos.
