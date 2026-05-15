@@ -1,0 +1,96 @@
+============================================================
+INVESTIGACAO N DUPLICADO + TOOLBAR
+============================================================
+
+1. TODOS os create_text contendo N isolado:
+  L2250: create_text(cx,cy-r-8,text="N",fill=AMARELO,font=("Segoe UI",9,"bold")
+  L2271: create_text(cx, cy+r-7, text="N",
+                      font=("Segoe UI", 9, "bo
+
+2. Referencias a bussola/norte/compass:
+  L1932: ...=self.sel_idx)          self._norte(W-40,40)         self._rodape(W,H)         s...
+  L1934: ...lf._rodape(W,H)         self._bussola(W, H)      def _desenhar_el(self,el,sel=Fa...
+  L2245: ...oe UI", 8, "bold"))      def _norte(self,cx,cy):         c=self.canvas; r=16    ...
+  L2250: ... c.create_text(cx,cy-r-8,text="N",fill=AMARELO,font=("Segoe UI",9,"bold"))      ...
+  L2256: ...vo."""         pass      def _bussola(self, W, H):         """Desenha bussola N ...
+  L2257: ...lf, W, H):         """Desenha bussola N no canto superior direito do canvas.""" ...
+  L2271: ....create_text(cx, cy+r-7, text="N",                       font=("Segoe UI", 9, "b...
+
+3. Chamadas de _bussola e _rodape:
+  L1933: self._rodape(W,H)
+  L1934: self._bussola(W, H)
+
+4. _set_ferr_via (EditorCroqui):
+    0:     def _set_ferr_via(self, f):
+    1:         """Define ferramenta no modo via."""
+    2:         self._ferr_via = f
+    3:         dica = next((d for ch,i,d in FERRAMENTAS_VIA if ch==f), f)
+    4:         self.status.config(text=f"🛣 Via: {dica}  — clique e arraste")
+    5: 
+    6: 
+
+5. _criar_btn_ferr COMPLETO:
+    0:         def _criar_btn_ferr(parent, chave, icone, dica, fn_set):
+    1:             f = tk.Frame(parent, bg=FUNDO_PAINEL, cursor="hand2")
+    2:             f.pack(fill="x", pady=1)
+    3:             # Indicador lateral (3px)
+    4:             ind = tk.Frame(f, bg=FUNDO_PAINEL, width=3)
+    5:             ind.pack(side="left", fill="y")
+    6:             # Icone
+    7:             lbl_ico = tk.Label(f, text=icone, font=("Segoe UI", 12),
+    8:                                bg=FUNDO_PAINEL, fg=TEXTO_SECUNDARIO,
+    9:                                width=2)
+   10:             lbl_ico.pack(side="left", padx=(8,4), pady=6)
+   11:             # Label
+   12:             lbl_txt = tk.Label(f, text=dica.split("—")[0].split("/")[0].strip(),
+   13:                                font=FONTE_SMALL,
+   14:                                bg=FUNDO_PAINEL, fg=TEXTO_SECUNDARIO,
+   15:                                anchor="w")
+   16:             lbl_txt.pack(side="left", fill="x", expand=True)
+   17:             # Hover
+   18:             def _hin(e):
+   19:                 if not getattr(f, "_ativo", False):
+   20:                     f.config(bg=FUNDO_HOVER)
+   21:                     ind.config(bg=FUNDO_HOVER)
+   22:                     lbl_ico.config(bg=FUNDO_HOVER)
+   23:                     lbl_txt.config(bg=FUNDO_HOVER)
+   24:                 if hasattr(self, "status"):
+   25:                     self.status.config(text=dica)
+   26:             def _hout(e):
+   27:                 if not getattr(f, "_ativo", False):
+   28:                     f.config(bg=FUNDO_PAINEL)
+   29:                     ind.config(bg=FUNDO_PAINEL)
+   30:                     lbl_ico.config(bg=FUNDO_PAINEL)
+   31:                     lbl_txt.config(bg=FUNDO_PAINEL)
+   32:             def _cl(e):
+   33:                 fn_set(chave)
+   34:             for w in [f, ind, lbl_ico, lbl_txt]:
+   35:                 w.bind("<Enter>", _hin)
+   36:                 w.bind("<Leave>", _hout)
+   37:                 w.bind("<Button-1>", _cl)
+   38:             # Armazena refs para poder marcar ativo
+   39:             f._ind = ind
+   40:             f._ico = lbl_ico
+   41:             f._txt = lbl_txt
+   42:             return f
+
+6. Chamadas _set_ferr / _set_ferr_via (todas):
+  L1131: self._set_ferr("sel")
+  L1398: self._set_ferr_via("asfalto")
+  L1415: self._set_ferr("sel")
+  L1428: self._set_ferr("sel")
+  L1591: self._set_ferr("cota")
+  L2462: self._set_ferr(c)
+  L2544: self._set_ferr("asfalto")
+
+7. Funcoes de estilo/ativo na toolbar:
+  '_aplicar_estilo': 0 ocorrencias
+  '_marcar_ativo': 0 ocorrencias
+  '_ativo': 9 ocorrencias
+  'FUNDO_ATIVO': 1 ocorrencias
+
+8. Loop que cria botoes de ferramenta:
+    0: for chave, icone, dica in self.FERRAMENTAS:
+    1:             f = _criar_btn_ferr(inner, chave, icone, dica, self._set_ferr)
+    2:             self.btns_ferr[chave] = f
+    3: 

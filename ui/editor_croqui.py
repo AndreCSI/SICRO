@@ -1110,6 +1110,7 @@ class EditorCroqui(tk.Frame):
         self.status.pack(side="left", padx=20, pady=6, fill="x", expand=True)
 
         self._set_ferr("sel")
+        self.after(60, lambda: self._set_ferr("sel"))
         # Ctrl+Z e Delete na janela raiz
         self.after(100, lambda: self.winfo_toplevel().bind("<Control-z>", self._desfazer))
         self.after(100, lambda: self.winfo_toplevel().bind("<Control-Z>", self._desfazer))
@@ -1401,12 +1402,62 @@ class EditorCroqui(tk.Frame):
         self._ferr_via = f
         dica = next((d for ch,i,d in FERRAMENTAS_VIA if ch==f), f)
         self.status.config(text=f"🛣 Via: {dica}  — clique e arraste")
+        # Visual: marca ativo nos botoes de via
+        if hasattr(self, "btns_via"):
+            for ch, fr in self.btns_via.items():
+                if not isinstance(fr, tk.Frame):
+                    continue
+                ativo = (ch == f)
+                fr._ativo = ativo
+                if ativo:
+                    fr.config(bg=FUNDO_ATIVO)
+                    fr._ind.config(bg=DOURADO)
+                    fr._ico.config(bg=FUNDO_ATIVO, fg=DOURADO)
+                    fr._txt.config(bg=FUNDO_ATIVO, fg=TEXTO_PRIMARIO,
+                                   font=FONTE_SMALL_BOLD)
+                else:
+                    fr.config(bg=FUNDO_PAINEL)
+                    fr._ind.config(bg=FUNDO_PAINEL)
+                    fr._ico.config(bg=FUNDO_PAINEL, fg=TEXTO_SECUNDARIO)
+                    fr._txt.config(bg=FUNDO_PAINEL, fg=TEXTO_SECUNDARIO,
+                                   font=FONTE_SMALL)
 
     def _set_ferr(self, c):
         self.ferramenta = c
         if c == "calibrar" and self.modo == "zero":
             messagebox.showinfo("Calibração","Disponível apenas no modo drone.")
             self._set_ferr("sel")
+            return
+        # ──── VISUAL: marca ferramenta ativa na toolbar ────
+        if hasattr(self, "btns_ferr"):
+            for ch, fr in self.btns_ferr.items():
+                if not isinstance(fr, tk.Frame):
+                    continue
+                ativo = (ch == c)
+                fr._ativo = ativo
+                if ativo:
+                    fr.config(bg=FUNDO_ATIVO)
+                    fr._ind.config(bg=DOURADO)
+                    fr._ico.config(bg=FUNDO_ATIVO, fg=DOURADO)
+                    fr._txt.config(bg=FUNDO_ATIVO, fg=TEXTO_PRIMARIO,
+                                   font=FONTE_SMALL_BOLD)
+                else:
+                    fr.config(bg=FUNDO_PAINEL)
+                    fr._ind.config(bg=FUNDO_PAINEL)
+                    fr._ico.config(bg=FUNDO_PAINEL, fg=TEXTO_SECUNDARIO)
+                    fr._txt.config(bg=FUNDO_PAINEL, fg=TEXTO_SECUNDARIO,
+                                   font=FONTE_SMALL)
+        # Desmarca botoes de via quando usa ferramenta normal
+        if hasattr(self, "btns_via"):
+            for ch, fr in self.btns_via.items():
+                if not isinstance(fr, tk.Frame):
+                    continue
+                fr._ativo = False
+                fr.config(bg=FUNDO_PAINEL)
+                fr._ind.config(bg=FUNDO_PAINEL)
+                fr._ico.config(bg=FUNDO_PAINEL, fg=TEXTO_SECUNDARIO)
+                fr._txt.config(bg=FUNDO_PAINEL, fg=TEXTO_SECUNDARIO,
+                               font=FONTE_SMALL)
 
     # ──────────────────────────────────────────
     #  COORDENADAS / ZOOM / PAN
@@ -1909,9 +1960,8 @@ class EditorCroqui(tk.Frame):
             # Modo normal: desenha tudo normalmente
             for i,el in enumerate(self.elementos):
                 self._desenhar_el(el, i==self.sel_idx)
-
-        self._norte(W-40,40)
         self._rodape(W,H)
+        self._bussola(W, H)
 
     def _desenhar_el(self,el,sel=False):
         c=self.canvas; tipo=el["tipo"]
@@ -2229,16 +2279,28 @@ class EditorCroqui(tk.Frame):
         c.create_polygon(cx,cy-r,cx+5,cy,cx-5,cy,fill=AMARELO,outline="")
         c.create_text(cx,cy-r-8,text="N",fill=AMARELO,font=("Segoe UI",9,"bold"))
 
-    def _rodape(self,W,H):
-        c=self.canvas
-        perito=self.dados_caso.get("perito","")
-        bo=self.dados_caso.get("bo","")
-        data=self.dados_caso.get("data","")
-        c.create_rectangle(0,H-22,W,H,fill=COR_PAINEL,outline="")
-        c.create_line(0,H-22,W,H-22,fill=AMARELO,width=1)
-        c.create_text(W//2,H-11,
-                      text=f"BO {bo}  ·  {data}  ·  Perito: {perito}",
-                      fill=CINZA_CLARO,font=FONTE_PEQ)
+    def _rodape(self, W, H):
+        """Rodape do canvas — info do BO ja esta no header novo."""
+        pass
+
+    def _bussola(self, W, H):
+        """Desenha bussola N no canto superior direito do canvas."""
+        c = self.canvas
+        cx = W - 38
+        cy = 42
+        r = 22
+        # Circulo de fundo
+        c.create_oval(cx-r, cy-r, cx+r, cy+r,
+                      fill=FUNDO_PAINEL, outline=AZUL_BORDA, width=1)
+        # Seta N — apontando para cima
+        c.create_polygon(cx, cy-r+5,
+                         cx-6, cy+2,
+                         cx+6, cy+2,
+                         fill=DOURADO, outline="")
+        # Letra N centralizada abaixo da seta
+        c.create_text(cx, cy+r-7, text="N",
+                      font=("Segoe UI", 9, "bold"),
+                      fill=DOURADO)
 
     # ──────────────────────────────────────────
     #  SALVAR / PDF
