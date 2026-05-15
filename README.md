@@ -83,8 +83,7 @@ SICRO/
 ## Autor
 
 **André Ricardo Barroso**
-Perito Criminal — Polícia Científica do Amapá
-Seção de Perícias de Trânsito
+Perito Criminal — Polícia Científica do Amapá — Departamento de Criminalística
 
 ---
 
