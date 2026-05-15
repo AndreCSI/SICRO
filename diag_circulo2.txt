@@ -1,0 +1,116 @@
+============================================================
+BUSCA AMPLA DO CIRCULO DE SELECAO
+============================================================
+
+1. TODOS os create_oval:
+  L1772: create_oval(tx-5,ty-5,tx+5,ty+5,
+  L2006: create_oval(mx-r,my-r,mx+r,my+r,fill="#606060",outline=AMARELO,width=2))
+  L2011: create_oval(tx2-r,ty2-r,tx2+r,ty2+r,fill=cor,outline=BRANCO,width=1))
+  L2216: create_oval(hx-r, hy-r, hx+r, hy+r,
+  L2269: create_oval(tx-r,ty-r,tx+r,ty+r,fill="#606060",outline="")
+  L2270: create_oval(tx-ri,ty-ri,tx+ri,ty+ri,fill="#1A3A1A",outline="")
+  L2271: create_oval(tx-r,ty-r,tx+r,ty+r,fill="",outline=AMARELO,
+  L2309: create_oval(tx-r,ty-r,tx+r,ty+r,fill="#606060",outline="#808080",width=1)
+  L2310: create_oval(tx-ri,ty-ri,tx+ri,ty+ri,fill="#1A3A1A",outline="#2A5A2A",width=1)
+  L2311: create_oval(tx-r,ty-r,tx+r,ty+r,fill="",outline=AMARELO,
+  L2317: create_oval(tx-r*0.6,ty+oy_-r*0.6,tx+r*0.6,ty+oy_+r*0.6,
+  L2333: create_oval(tx-r,ty-r,tx+r,ty+r,fill=BRANCO,outline="#CC0000",width=max(2,int(2*self.zoom)))
+  L2340: create_oval(tx-r,ty-r,tx+r,ty+r,fill=BRANCO,outline="#CC0000",width=max(2,int(2*self.zoom)))
+  L2348: create_oval(tx-r,ty-r,tx+r,ty+r,fill="#1A6A1A",outline="#2A8A2A",width=1)
+  L2349: create_oval(tx-r*.5,ty-r*.5,tx+r*.5,ty+r*.5,fill="#2A8A2A",outline=""); return
+  L2353: create_oval(tx-r,ty-r*4,tx+r,ty-r*2,fill="#FFEE88",outline="#CCCC44",width=1)
+  L2392: create_oval(ax1-r,ay1-r,ax1+r,ay1+r,
+  L2394: create_oval(ax2-r,ay2-r,ax2+r,ay2+r,
+  L2476: create_oval(tx-r,ty-r,tx+r,ty+r,
+  L2561: create_oval(cx-r, cy-r, cx+r, cy+r,
+  L2963: create_oval(tx-r*.6,ty+oy_-r*.6,tx+r*.6,ty+oy_+r*.6,
+  L2977: create_oval(tx-r,ty-r,tx+r,ty+r,
+  L2986: create_oval(tx-r,ty-r*4,tx+r,ty-r*2,
+  L2991: create_oval(tx-r,ty-r,tx+r,ty+r,
+  L3020: create_oval(mx-r,my-r,mx+r,my+r,
+  L3023: create_oval(mx-r*0.4,my-r*0.4,mx+r*0.4,my+r*0.4,
+  L3030: create_oval(tx2-r,ty2-r,tx2+r,ty2+r,
+  L3216: create_oval(tx-r,ty-r,tx+r,ty+r,fill="#606060",outline="")
+  L3217: create_oval(tx-ri,ty-ri,tx+ri,ty+ri,fill="#1A3A1A",outline="")
+  L3218: create_oval(tx-r,ty-r,tx+r,ty+r,fill="",outline=AMARELO,
+  L3264: create_oval(tx-r,ty-r,tx+r,ty+r,fill="#606060",outline="#808080",width=1)
+  L3265: create_oval(tx-ri,ty-ri,tx+ri,ty+ri,fill="#1A3A1A",outline="#2A5A2A",width=1)
+  L3266: create_oval(tx-r,ty-r,tx+r,ty+r,fill="",outline=AMARELO,
+  L3277: create_oval(tx-r*0.6,ty+oy_-r*0.6,
+  L3298: create_oval(tx-r,ty-r,tx+r,ty+r,fill=BRANCO,
+  L3310: create_oval(tx-r,ty-r,tx+r,ty+r,fill=BRANCO,
+  L3323: create_oval(tx-r,ty-r,tx+r,ty+r,fill="#1A6A1A",outline="#2A8A2A",width=1)
+  L3324: create_oval(tx-r*.5,ty-r*.5,tx+r*.5,ty+r*.5,fill="#2A8A2A",outline="")
+  L3330: create_oval(tx-r,ty-r*4,tx+r,ty-r*2,
+  L3338: create_oval(tx-r2,ty-r2,tx+r2,ty+r2,
+  L3342: create_oval(ax1-6,ay1-6,ax1+6,ay1+6,fill=AMARELO,outline="")
+  L3343: create_oval(ax2-6,ay2-6,ax2+6,ay2+6,fill=AMARELO,outline="")
+
+2. Referencias a raio de selecao:
+  L302 [r_sel]: ....lb.bind("<Double-Button-1>", self._abrir_sel)          tk.Button(dir_, text="Abrir croqui seleciona...
+  L309 [r_sel]: ...=7,                   command=self._abrir_sel).pack(fill="x")         self._carregar()      def _car...
+  L342 [r_sel]: ...rt(tk.END, f"  {a.name}")      def _abrir_sel(self, event=None):         idx = self.lb.curselection(...
+  L2771 [r_sel]: .../ mover"),             ("⌫", self._apagar_sel, "Apagar selecionado"),             ("↺", self._desfaz...
+  L2806 [r_sel]: ...s.bind("<Delete>",           self._apagar_sel)         self.bind("<Delete>",                  self._...
+  L2807 [r_sel]: ..."<Delete>",                  self._apagar_sel)          # Painel direito: camadas de via         pd ...
+  L2834 [r_sel]: ...4,                   command=self._apagar_sel).pack(fill="x", padx=4, pady=4)          self.status =...
+  L3098 [r_sel]: ...      self._redesenhar()      def _apagar_sel(self):         if self.sel_idx is None: return        ...
+  L343 [rsel]: ...f, event=None):         idx = self.lb.curselection()         if not idx or not hasattr(self,"_arqs")...
+  L1170 [rsel]: ...=None):         sel = self.lb_camadas.curselection()         if not sel:             return         ...
+  L3106 [rsel]: ...self,event=None):         sel=self.lb.curselection()         if not sel: return         el_idx=len(s...
+
+3. _selecionar (EditorCroqui real):
+  Encontrado L464:     def _selecionar(self, data):
+  Encontrado L1880:     def _selecionar(self,x,y):
+  Encontrado L3093:     def _selecionar(self,x,y):
+
+  --- _selecionar L1880 (corpo) ---
+    0:     def _selecionar(self,x,y):
+    1:         i=self._em(x,y)
+    2:         self.sel_idx=i
+    3:         self.drag_start=(x,y) if i is not None else None
+    4:         self._drag_ponto = None
+    5:         if i is not None:
+    6:             el = self.elementos[i]
+    7:             if el["tipo"] in ("r1","r2","cota") and "x2" in el:
+    8:                 rz = 20/self.zoom
+    9:                 if math.hypot(x-el["x2"],y-el["y2"]) < rz:
+   10:                     self._drag_ponto = "p2"
+   11:                 elif math.hypot(x-el["x"],y-el["y"]) < rz:
+   12:                     self._drag_ponto = "p1"
+   13:                 else:
+   14:                     self._drag_ponto = "move"
+   15:             self._mostrar_props(i)
+   16:         else:
+   17:             self.label_prop.config(text="Selecione um\nelemento")
+   18:             self.btn_redim.config(state="disabled",fg=CINZA_CLARO)
+   19:         self._atualizar_camadas()
+   20:         self._redesenhar()
+   21: 
+   22: 
+
+4. Trechos com 'sel' que desenham algo circular:
+  --- L2390 ---
+    if sel:
+                    r=10*self.zoom
+                    c.create_oval(ax1-r,ay1-r,ax1+r,ay1+r,
+                                  outline=AMARELO,width=2,dash=(4,3))
+                    c.create_oval(ax2-r,ay2-r,ax2+r,ay2+r,
+                                  outline=AMARELO,width=2,dash=(4,3))
+  --- L2474 ---
+    if sel:
+                r=16*self.zoom
+                c.create_oval(tx-r,ty-r,tx+r,ty+r,
+                              outline=AMARELO,width=2,dash=(4,3))
+    
+  --- L3336 ---
+    if sel:
+                r2=18*self.zoom
+                c.create_oval(tx-r2,ty-r2,tx+r2,ty+r2,
+                             outline=AMARELO,width=2,dash=(4,3))
+                if "x2" in el:
+                    ax1,ay1=self._mt(el["x"],el["y"]); ax2,ay2=self._mt(el["x2"],el["y2"])
+                    c.create_oval(ax1-6,ay1-6,ax1+6,ay1+6,fill=AMARELO,outline="")
+                    c.create_oval(ax2-6,ay2-6,ax2+6,ay2+6,fill=AMARELO,outline="")
+    
+        # ── Aplicar ao croqui principal ───────────

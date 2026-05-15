@@ -1,0 +1,3 @@
+Procurando circulo amarelo de selecao...
+
+Contexto de cada um (5 linhas antes):

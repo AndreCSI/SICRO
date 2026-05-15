@@ -1,0 +1,74 @@
+CIRCULOS dash=(4,3) ou pontilhados restantes:
+
+--- L2392 ---
+  
+                                font=("Segoe UI", 9, "bold"),
+                                angle=-ang_deg)
+              # Marcador de seleção
+              if sel:
+                  r=10*self.zoom
+                  c.create_oval(ax1-r,ay1-r,ax1+r,ay1+r,
+                                outline=AMARELO,width=2,dash=(4,3))
+                  c.create_ova
+
+--- L2394 ---
+  
+                  r=10*self.zoom
+                  c.create_oval(ax1-r,ay1-r,ax1+r,ay1+r,
+                                outline=AMARELO,width=2,dash=(4,3))
+                  c.create_oval(ax2-r,ay2-r,ax2+r,ay2+r,
+                                outline=AMARELO,width=2,dash=(4,3))
+              return
+  
+          
+
+--- L2476 ---
+  
+                      bbox = c.bbox(c.find_withtag("current"))
+                  except Exception:
+                      bbox = None
+  
+          # Marcador seleção
+          if sel:
+              r=16*self.zoom
+              c.create_oval(tx-r,ty-r,tx+r,ty+r,
+                            outline=AMARELO,width=2,dash=(4,3))
+  
+      def _veiculo_arte(self,
+
+--- L3338 ---
+  
+                            fill="#888",width=max(1,int(1.5*self.zoom)))
+  
+          # Marcador de seleção
+          if sel:
+              r2=18*self.zoom
+              c.create_oval(tx-r2,ty-r2,tx+r2,ty+r2,
+                           outline=AMARELO,width=2,dash=(4,3))
+              if "x2" in el:
+   
+
+
+TODOS create_oval com dash:
+  L2392: create_oval(ax1-r,ay1-r,ax1+r,ay1+r,                               outline=AMARELO,width=2,dash=(4,3)
+  L2394: create_oval(ax2-r,ay2-r,ax2+r,ay2+r,                               outline=AMARELO,width=2,dash=(4,3)
+  L2476: create_oval(tx-r,ty-r,tx+r,ty+r,                           outline=AMARELO,width=2,dash=(4,3)
+  L3338: create_oval(tx-r2,ty-r2,tx+r2,ty+r2,                          outline=AMARELO,width=2,dash=(4,3)
+
+
+FERRAMENTAS (textos R1/R2):
+  FERRAMENTAS = [
+          ("sel",       "↖",  "Selecionar / mover"),
+          ("r1",        "R1", "Traçar eixo R1 (vertical)"),
+          ("r2",        "R2", "Traçar eixo R2 (horizontal)"),
+          ("carro",     "🚗", "Veículo — carro"),
+          ("moto",      "🏍", "Veículo — moto"),
+          ("caminhao",  "🚚", "Veículo — caminhão"),
+          ("bicicleta", "🚲", "Veículo — bicicleta"),
+          ("pedestre",  "🚶", "Pedestre"),
+          ("sc",        "✕",  "Sítio de colisão (SC)"),
+          ("cota",      "↔",  "Cota / medida"),
+          ("calibrar",  "📐", "Calibrar escala (drone)"),
+          ("texto",     "T",  "Texto / anotação"),
+          ("apagar",    "⌫",  "Apagar elemento"),
+      ]
