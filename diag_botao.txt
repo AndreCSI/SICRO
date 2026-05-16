@@ -1,0 +1,57 @@
+_card_acao COMPLETO:
+  0:     def _card_acao(self, parent, titulo, desc, cor_acento, img_chave, cmd):
+  1:         IMG_W = 320
+  2:         IMG_H = 160
+  3:         card = tk.Frame(parent, bg=FUNDO_CARD, cursor='hand2',
+  4:                         width=IMG_W)
+  5:         card.pack(side='left', padx=(0,14))
+  6:         card.pack_propagate(False)
+  7:         # Altura calculada: imagem + 2px linha + ~120 conteudo
+  8:         card.config(height=IMG_H + 130)
+  9:         # Imagem de fundo — Canvas com altura fixa
+ 10:         img_canvas = tk.Canvas(card, height=IMG_H, width=IMG_W,
+ 11:                                bg=FUNDO_CARD, highlightthickness=0)
+ 12:         img_canvas.pack(fill='x', expand=False)
+ 13:         img_canvas.pack_propagate(False)
+ 14:         def _draw_img(event, ic=img_canvas, ck=img_chave, ih=IMG_H, ca=cor_acento):
+ 15:             w = ic.winfo_width()
+ 16:             if w < 2: return
+ 17:             tk_img = _carregar_card_img(ck, w, ih)
+ 18:             ic.delete('all')
+ 19:             if tk_img:
+ 20:                 ic._img = tk_img
+ 21:                 ic.create_image(0, 0, anchor='nw', image=tk_img)
+ 22:             else:
+ 23:                 ic.create_rectangle(0, 0, w, ih, fill=ca, outline='')
+ 24:         img_canvas.bind('<Configure>', _draw_img)
+ 25:         # Faixa colorida separadora
+ 26:         tk.Frame(card, bg=cor_acento, height=2).pack(fill='x')
+ 27:         # Conteudo
+ 28:         inner = tk.Frame(card, bg=FUNDO_CARD)
+ 29:         inner.pack(fill='x', padx=14, pady=12)
+ 30:         tk.Label(inner, text=titulo, font=FONTE_BODY_BOLD,
+ 31:                  bg=FUNDO_CARD, fg=TEXTO_PRIMARIO, anchor='w').pack(fill='x')
+ 32:         tk.Label(inner, text=desc, font=FONTE_SMALL,
+ 33:                  bg=FUNDO_CARD, fg=TEXTO_SECUNDARIO,
+ 34:                  justify='left', anchor='w').pack(fill='x', pady=(4,10))
+ 35:         btn_fg = TEXTO_INVERTIDO if cor_acento == DOURADO else TEXTO_PRIMARIO
+ 36:         tk.Button(inner, text='Iniciar  >',
+ 37:                   font=FONTE_SMALL_BOLD, cursor='hand2',
+ 38:                   bg=cor_acento, fg=btn_fg,
+ 39:                   activebackground=FUNDO_HOVER,
+ 40:                   relief='flat', bd=0, padx=12, pady=5,
+ 41:                   command=cmd).pack(anchor='w')
+ 42:         # Hover
+ 43:         def _hin(e):
+ 44:             card.config(bg=FUNDO_HOVER); inner.config(bg=FUNDO_HOVER)
+ 45:             for w in inner.winfo_children():
+ 46:                 try: w.config(bg=FUNDO_HOVER)
+ 47:                 except Exception: pass
+ 48:         def _hout(e):
+ 49:             card.config(bg=FUNDO_CARD); inner.config(bg=FUNDO_CARD)
+ 50:             for w in inner.winfo_children():
+ 51:                 try: w.config(bg=FUNDO_CARD)
+ 52:                 except Exception: pass
+ 53:         card.bind('<Enter>', _hin); card.bind('<Leave>', _hout)
+ 54:         inner.bind('<Enter>', _hin); inner.bind('<Leave>', _hout)
+ 55: 
