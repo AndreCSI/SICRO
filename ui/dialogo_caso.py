@@ -13,6 +13,12 @@ from config import (
     FONTE_SUB, FONTE_NORMAL, FONTE_PEQ,
     MUNICIPIOS_AP,
 )
+from tema import (
+    FUNDO_BASE, FUNDO_PAINEL, FUNDO_CARD, FUNDO_HOVER,
+    DOURADO, AZUL_BORDA, TEXTO_PRIMARIO, TEXTO_SECUNDARIO,
+    TEXTO_TERCIARIO, FONTE_H2, FONTE_H3, FONTE_BODY,
+    FONTE_BODY_BOLD, FONTE_SMALL,
+)
 
 
 class CalendarioPopup(tk.Toplevel):
@@ -116,20 +122,42 @@ class DialogoDadosCaso(tk.Toplevel):
 
     def __init__(self, parent, modo='zero'):
         super().__init__(parent)
-        self.title('Dados do caso')
-        self.configure(bg=COR_FUNDO)
-        self.resizable(False, False)
+        self.overrideredirect(True)  # sem moldura Windows
+        self.configure(bg=FUNDO_PAINEL)
         self.grab_set()
         self.resultado = None
-        w, h = 480, 400
+        w, h = 460, 420
         sw, sh = self.winfo_screenwidth(), self.winfo_screenheight()
         self.geometry(f'{w}x{h}+{(sw-w)//2}+{(sh-h)//2}')
-        tk.Frame(self, bg=AMARELO, height=4).pack(fill='x')
-        corpo = tk.Frame(self, bg=COR_FUNDO)
-        corpo.pack(fill='both', expand=True, padx=24, pady=16)
+        self.attributes('-topmost', True)
+        # Borda externa sutil
+        self.configure(highlightbackground=DOURADO, highlightthickness=1)
+        # Faixa dourada topo
+        tk.Frame(self, bg=DOURADO, height=3).pack(fill='x')
+        # Barra de titulo customizada (arrastavel)
+        tbar = tk.Frame(self, bg=FUNDO_PAINEL, height=36)
+        tbar.pack(fill='x'); tbar.pack_propagate(False)
+        tk.Label(tbar, text='  Dados do caso', font=FONTE_H3,
+                 bg=FUNDO_PAINEL, fg=TEXTO_PRIMARIO).pack(side='left', pady=8)
+        _fechar = tk.Label(tbar, text='✕  ', font=('Segoe UI',11),
+                           bg=FUNDO_PAINEL, fg=TEXTO_SECUNDARIO,
+                           cursor='hand2')
+        _fechar.pack(side='right', pady=8)
+        _fechar.bind('<Button-1>', lambda e: self.destroy())
+        _fechar.bind('<Enter>', lambda e: _fechar.config(fg='#E08080'))
+        _fechar.bind('<Leave>', lambda e: _fechar.config(fg=TEXTO_SECUNDARIO))
+        # Arrastar pela barra
+        def _ds(e): self._dx, self._dy = e.x_root-self.winfo_x(), e.y_root-self.winfo_y()
+        def _dm(e): self.geometry(f'+{e.x_root-self._dx}+{e.y_root-self._dy}')
+        for _w in (tbar,):
+            _w.bind('<ButtonPress-1>', _ds)
+            _w.bind('<B1-Motion>', _dm)
+        tk.Frame(self, bg=AZUL_BORDA, height=1).pack(fill='x')
+        corpo = tk.Frame(self, bg=FUNDO_PAINEL)
+        corpo.pack(fill='both', expand=True, padx=28, pady=20)
         titulo = 'Croqui do zero' if modo=='zero' else 'Croqui sobre drone'
-        tk.Label(corpo, text=f'  {titulo}',
-                 font=FONTE_SUB, bg=COR_FUNDO, fg=AMARELO).pack(anchor='w', pady=(0,12))
+        tk.Label(corpo, text=titulo,
+                 font=FONTE_H2, bg=FUNDO_PAINEL, fg=DOURADO).pack(anchor='w', pady=(0,16))
         campos = [
             ('No do BO',           'bo',         ''),
             ('No da Requisicao',   'requisicao',  ''),
@@ -141,34 +169,36 @@ class DialogoDadosCaso(tk.Toplevel):
         self.entradas = {}
         self._dd_win  = None
         for label, chave, ph in campos:
-            row = tk.Frame(corpo, bg=COR_FUNDO)
+            row = tk.Frame(corpo, bg=FUNDO_PAINEL)
             row.pack(fill='x', pady=3)
-            tk.Label(row, text=label, font=FONTE_PEQ, width=20,
-                     anchor='w', bg=COR_FUNDO, fg=COR_TEXTO_SEC).pack(side='left')
+            tk.Label(row, text=label, font=FONTE_SMALL, width=18,
+                     anchor='w', bg=FUNDO_PAINEL, fg=TEXTO_SECUNDARIO).pack(side='left')
             if chave == 'municipio':
                 e = self._campo_municipio(row, ph)
             elif chave == 'data':
                 e = self._campo_data(row, ph)
             else:
-                e = tk.Entry(row, font=FONTE_NORMAL,
-                             bg=COR_CARD, fg=BRANCO,
-                             insertbackground=BRANCO, relief='flat', bd=4)
+                e = tk.Entry(row, font=FONTE_BODY,
+                             bg=FUNDO_CARD, fg=TEXTO_PRIMARIO,
+                             insertbackground=DOURADO, relief='flat', bd=5,
+                             highlightthickness=1, highlightcolor=DOURADO,
+                             highlightbackground=AZUL_BORDA)
                 e.insert(0, ph)
                 e.pack(side='left', fill='x', expand=True)
             self.entradas[chave] = e
-        tk.Frame(corpo, bg=COR_BORDA, height=1).pack(fill='x', pady=10)
-        btns = tk.Frame(corpo, bg=COR_FUNDO)
+        tk.Frame(corpo, bg=AZUL_BORDA, height=1).pack(fill='x', pady=14)
+        btns = tk.Frame(corpo, bg=FUNDO_PAINEL)
         btns.pack(fill='x')
-        tk.Button(btns, text='Cancelar', font=FONTE_NORMAL, cursor='hand2',
-                  bg=COR_CARD, fg=COR_TEXTO_SEC, activebackground=COR_BORDA,
-                  relief='flat', padx=14, pady=5,
+        tk.Button(btns, text='Cancelar', font=FONTE_SMALL, cursor='hand2',
+                  bg=FUNDO_CARD, fg=TEXTO_SECUNDARIO, activebackground=FUNDO_HOVER,
+                  relief='flat', padx=16, pady=6,
                   command=self.destroy).pack(side='right', padx=(6,0))
-        tk.Button(btns, text='Criar croqui ->',
-                  font=('Segoe UI',10,'bold'), cursor='hand2',
-                  bg=AZUL_MEDIO, fg=BRANCO, activebackground=AZUL_CLARO,
-                  relief='flat', padx=14, pady=5,
+        tk.Button(btns, text='Criar croqui  →',
+                  font=FONTE_BODY_BOLD, cursor='hand2',
+                  bg=AZUL_MEDIO, fg=TEXTO_PRIMARIO, activebackground=AZUL_CLARO,
+                  relief='flat', padx=18, pady=6,
                   command=self._ok).pack(side='right')
-        tk.Frame(self, bg=AMARELO, height=4).pack(fill='x', side='bottom')
+        tk.Frame(self, bg=DOURADO, height=3).pack(fill='x', side='bottom')
 
     def _campo_municipio(self, row, ph):
         mframe = tk.Frame(row, bg=COR_CARD)

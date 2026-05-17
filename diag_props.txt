@@ -1,0 +1,175 @@
+============================================================
+1. Botao PDF/Exportar no header
+============================================================
+  L821: ...ader(dir_, "💾", "Salvar", self._salvar, DOURADO) |         _btn_header(dir_, "📄", "PDF",    self._exportar_pdf) |         _btn_header(dir_, "🏠", "Início", self._voltar) |  |         # Corp...
+  L821: ... "Salvar", self._salvar, DOURADO) |         _btn_header(dir_, "📄", "PDF",    self._exportar_pdf) |         _btn_header(dir_, "🏠", "Início", self._voltar) |  |         # Corpo |         corpo...
+  L2660: ...- cx_m*z |         self.pan_y = ch/2 - cy_m*z |         self._redesenhar() |  |     def _exportar_pdf(self): |         """Exporta a prancha pericial em PDF ou PNG.""" |         if not PIL_OK: | ...
+  L2685: ...): |             escolha["fmt"] = f; win.destroy() |         for txt, fmt, cor in (("PDF", "pdf", AZUL_MEDIO), |                               ("PNG", "png", FUNDO_CARD)): |             b ...
+
+============================================================
+2. _mostrar_props COMPLETO (como monta os campos por tipo)
+============================================================
+    0:     def _mostrar_props(self, idx):
+    1:         """Mostra propriedades editaveis do elemento selecionado."""
+    2:         el = self.elementos[idx]
+    3: 
+    4:         # Se nao tem painel novo, usa fallback antigo
+    5:         if not hasattr(self, "_props"):
+    6:             linhas = []
+    7:             icone, nome = TIPO_INFO.get(el["tipo"], ("?", el["tipo"]))
+    8:             linhas.append(f"{icone}  {nome}")
+    9:             if el.get("label"):      linhas.append(f"Rotulo: {el['label']}")
+   10:             if el.get("angulo") is not None and el["tipo"] != "_rotatoria":
+   11:                 linhas.append(f"Angulo: {el.get('angulo',0):.0f}graus")
+   12:             if el.get("larg"):       linhas.append(f"Largura: {el['larg']} px")
+   13:             if el.get("alt"):        linhas.append(f"Altura: {el['alt']} px")
+   14:             if hasattr(self, "label_prop"):
+   15:                 self.label_prop.config(text="\n".join(linhas))
+   16:             tipos_redim = ("carro","moto","caminhao","bicicleta",
+   17:                            "pedestre","sc","via_h","via_v","r1","r2")
+   18:             if el["tipo"] in tipos_redim:
+   19:                 self.btn_redim.config(state="normal", fg=DOURADO)
+   20:             else:
+   21:                 self.btn_redim.config(state="disabled", fg=TEXTO_TERCIARIO)
+   22:             return
+   23: 
+   24:         # ──── PAINEL NOVO COM CAMPOS EDITAVEIS ────
+   25:         # Limpa campos antigos
+   26:         for w in self._props.winfo_children():
+   27:             w.destroy()
+   28: 
+   29:         icone, nome = TIPO_INFO.get(el["tipo"], ("?", el["tipo"]))
+   30: 
+   31:         # Cabecalho
+   32:         hdr = tk.Frame(self._props, bg=FUNDO_PAINEL)
+   33:         hdr.pack(fill="x", pady=(0,8))
+   34:         tk.Label(hdr, text=icone, font=("Segoe UI", 14),
+   35:                  bg=FUNDO_PAINEL, fg=DOURADO).pack(side="left")
+   36:         tk.Label(hdr, text="  " + nome, font=FONTE_BODY_BOLD,
+   37:                  bg=FUNDO_PAINEL, fg=TEXTO_PRIMARIO).pack(side="left")
+   38: 
+   39:         def _campo(label, valor_str, on_change):
+   40:             """Cria um campo Entry editavel."""
+   41:             f = tk.Frame(self._props, bg=FUNDO_PAINEL)
+   42:             f.pack(fill="x", pady=2)
+   43:             tk.Label(f, text=label, font=FONTE_MICRO,
+   44:                      bg=FUNDO_PAINEL, fg=TEXTO_TERCIARIO,
+   45:                      width=11, anchor="w").pack(side="left")
+   46:             var = tk.StringVar(value=valor_str)
+   47:             # Guarda refs para update rapido sem reconstruir painel
+   48:             if label == "Rotacao":
+   49:                 self._rot_var = var
+   50:             elif label.startswith("Largura"):
+   51:                 self._larg_var = var
+   52:             elif label.startswith("Altura"):
+   53:                 self._alt_var = var
+   54:             e = tk.Entry(f, textvariable=var, font=FONTE_SMALL,
+   55:                          bg=FUNDO_CARD, fg=TEXTO_PRIMARIO,
+   56:                          insertbackground=DOURADO,
+   57:                          relief="flat", bd=4, width=10,
+   58:                          highlightthickness=1,
+   59:                          highlightcolor=DOURADO,
+   60:                          highlightbackground=AZUL_BORDA)
+   61:             e.pack(side="left", fill="x", expand=True)
+   62:             def _apply(event=None):
+   63:                 try:
+   64:                     on_change(var.get())
+   65:                     self._redesenhar()
+   66:                 except Exception:
+   67:                     var.set(valor_str)
+   68:             e.bind("<Return>", _apply)
+   69:             e.bind("<FocusOut>", _apply)
+   70: 
+   71:         # Rotulo
+   72:         if el.get("label") is not None:
+   73:             def set_label(v):
+   74:                 el["label"] = v
+   75:             _campo("Rotulo", str(el.get("label", "")), set_label)
+   76: 
+   77:         # Posicao
+   78:         k = self.k if (self.calibrado and self.k) else 1.0
+   79:         unidade = "m" if self.calibrado else "px"
+   80:         fator = k if self.calibrado else 1.0
+   81: 
+   82:         if "x" in el and "y" in el:
+   83:             def set_x(v):
+   84:                 el["x"] = float(v) / fator
+   85:             def set_y(v):
+   86:                 el["y"] = float(v) / fator
+   87:             _campo(f"Pos X ({unidade})",
+   88:                    f"{el.get('x', 0) * fator:.2f}", set_x)
+   89:             _campo(f"Pos Y ({unidade})",
+   90:                    f"{el.get('y', 0) * fator:.2f}", set_y)
+   91: 
+   92:         # Angulo
+   93:         if el.get("angulo") is not None and el["tipo"] != "_rotatoria":
+   94:             def set_ang(v):
+   95:                 el["angulo"] = float(v)
+   96:             _campo("Rotacao", f"{el.get('angulo', 0):.1f}", set_ang)
+   97: 
+   98:         # Largura
+   99:         if el.get("larg") is not None:
+  100:             def set_larg(v):
+  101:                 el["larg"] = float(v) / fator
+  102:             _campo(f"Largura ({unidade})",
+  103:                    f"{el['larg'] * fator:.2f}", set_larg)
+  104: 
+  105:         # Altura
+  106:         if el.get("alt") is not None:
+  107:             def set_alt(v):
+  108:                 el["alt"] = float(v) / fator
+  109:             _campo(f"Altura ({unidade})",
+  110:                    f"{el['alt'] * fator:.2f}", set_alt)
+  111: 
+  112:         # Cor (com seletor)
+  113:         if el.get("cor"):
+  114:             cf = tk.Frame(self._props, bg=FUNDO_PAINEL)
+  115:             cf.pack(fill="x", pady=2)
+  116:             tk.Label(cf, text="Cor", font=FONTE_MICRO,
+  117:                      bg=FUNDO_PAINEL, fg=TEXTO_TERCIARIO,
+  118:                      width=11, anchor="w").pack(side="left")
+  119:             cor_atual = el.get("cor", "#888888")
+  120:             swatch = tk.Frame(cf, bg=cor_atual, width=24, height=18,
+  121:                               cursor="hand2", relief="solid", bd=1)
+  122:             swatch.pack(side="left", padx=(0,6))
+  123:             swatch.pack_propagate(False)
+  124:             def _trocar_cor(event):
+  125:                 from tkinter import colorchooser
+  126:                 cor = colorchooser.askcolor(
+  127:                     initialcolor=el.get("cor", "#888888"),
+  128:                     parent=self.winfo_toplevel())
+  129:                 if cor and cor[1]:
+  130:                     el["cor"] = cor[1]
+  131:                     swatch.config(bg=cor[1])
+  132:                     self._redesenhar()
+  133:             swatch.bind("<Button-1>", _trocar_cor)
+  134:             tk.Label(cf, text=cor_atual, font=FONTE_MICRO,
+  135:                      bg=FUNDO_PAINEL, fg=TEXTO_SECUNDARIO).pack(side="left")
+  136: 
+  137:         # Botao redimensionar
+  138:         tipos_redim = ("carro","moto","caminhao","bicicleta",
+  139:                        "pedestre","sc","via_h","via_v","r1","r2")
+  140:         if el["tipo"] in tipos_redim:
+  141:             self.btn_redim.config(state="normal", fg=DOURADO)
+  142:         else:
+  143:             self.btn_redim.config(state="disabled", fg=TEXTO_TERCIARIO)
+  144: 
+
+============================================================
+3. funcao _campo (helper de campo editavel)
+============================================================
+    0:         def _campo(parent, label, valor, fg_valor=None, side="left"):
+    1:             f = tk.Frame(parent, bg=FUNDO_PAINEL)
+    2:             f.pack(side=side, padx=10, pady=6)
+    3:             tk.Label(f, text=label + ":", font=FONTE_MICRO,
+    4:                      bg=FUNDO_PAINEL, fg=TEXTO_TERCIARIO).pack(side="left")
+    5:             lbl = tk.Label(f, text=" " + str(valor), font=FONTE_SMALL_BOLD,
+    6:                            bg=FUNDO_PAINEL,
+    7:                            fg=fg_valor or TEXTO_PRIMARIO)
+    8:             lbl.pack(side="left")
+    9:             return lbl
+   10: 
+   11:         def _sep(parent):
+   12:             tk.Frame(parent, bg=AZUL_BORDA, width=1).pack(
+   13:                 side="left", fill="y", padx=2, pady=6)
+   14: 

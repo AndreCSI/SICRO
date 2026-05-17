@@ -29,6 +29,7 @@ from ui.splash       import SplashScreen
 from ui.tela_inicial import TelaInicial
 from ui.dialogo_caso import DialogoDadosCaso
 from ui.editor_croqui import EditorCroqui
+from ui.cropador import CropadorImagem
 from popups.popup_modelo_via import PopupModeloVia
 
 
@@ -205,7 +206,11 @@ class AppSicro(tk.Tk):
                                   img_brasao=self._brasao))
 
     def _novo(self, modo):
-        dlg = DialogoDadosCaso(self, modo=modo)
+        # modo: "zero" (manual), "drone", "modelo"
+        usar_modelo = (modo == "modelo")
+        modo_editor = "drone" if modo == "drone" else "zero"
+
+        dlg = DialogoDadosCaso(self, modo=modo_editor)
         self.wait_window(dlg)
         if not dlg.resultado:
             return
@@ -220,38 +225,68 @@ class AppSicro(tk.Tk):
                 filetypes=[("Imagens", "*.jpg *.jpeg *.png *.tif")])
             if not cam:
                 return
-            img_drone = Image.open(cam)
-
-        popup = PopupModeloVia(self)
-        self.wait_window(popup)
-        res = popup.resultado or {"icone": "branco"}
+            img_orig = Image.open(cam)
+            # Ferramenta de recorte: foca na area do acidente,
+            # reduz resolucao e deixa o trabalho mais fluido
+            crop = CropadorImagem(self, img_orig)
+            self.wait_window(crop)
+            if crop.resultado is None:
+                return   # usuario cancelou o recorte
+            img_drone = crop.resultado
 
         els = []
-        if res.get("icone", "branco") != "branco":
-            W = max(self.winfo_width(), 800)
-            H = max(self.winfo_height(), 600)
-            els = gerar_elementos_modelo(res["icone"], W, H)
+        if usar_modelo:
+            # Vai DIRETO para a grade de modelos (sem pergunta redundante)
+            from popups.popup_modelo_via import GridModelos
+            grid = GridModelos(self)
+            self.wait_window(grid)
+            if not grid.resultado:
+                return
+            icone = grid.resultado.get("icone", "branco")
+            if icone != "branco":
+                W = max(self.winfo_width(), 800)
+                H = max(self.winfo_height(), 600)
+                els = gerar_elementos_modelo(icone, W, H)
 
-        editor = EditorCroqui(self, dlg.resultado, modo=modo,
+        editor = EditorCroqui(self, dlg.resultado, modo=modo_editor,
                               img_drone=img_drone, elementos_iniciais=els)
         self._trocar(editor)
 
     def _abrir(self, caminho):
+        import base64, io
         try:
             with open(caminho, encoding="utf-8") as f:
                 dados = json.load(f)
         except Exception as e:
             messagebox.showerror("Erro", str(e))
             return
-        caso = {k: dados[k] for k in
-                ("bo", "requisicao", "local", "municipio", "perito", "data")
-                if k in dados}
+        if dados.get("versao_sicro") != "1.0":
+            messagebox.showerror("Formato incompativel",
+                "Este arquivo nao esta no formato .sicro 1.0.")
+            return
+        meta = dados.get("metadata", {})
+        cfg  = dados.get("config", {})
+        caso = {k: meta.get(k, "") for k in
+                ("bo", "requisicao", "local", "municipio", "perito", "data")}
+        # Reconstroi imagem do drone do base64
+        img_drone = None
+        ib = dados.get("imagem_base", {})
+        if ib.get("presente") and ib.get("dados_b64") and PIL_OK:
+            try:
+                raw = base64.b64decode(ib["dados_b64"])
+                img_drone = Image.open(io.BytesIO(raw)).convert("RGBA")
+            except Exception as e:
+                messagebox.showwarning("Imagem",
+                    f"Falha ao carregar imagem embutida: {e}")
         editor = EditorCroqui(self, caso,
-                              modo=dados.get("modo", "zero"),
+                              modo=cfg.get("modo", "zero"),
+                              img_drone=img_drone,
                               elementos_iniciais=dados.get("elementos", []))
-        editor.calibrado = dados.get("calibrado", False)
-        editor.k   = dados.get("k")
-        editor.u_k = dados.get("u_k")
+        editor.calibrado = cfg.get("calibrado", False)
+        editor.k   = cfg.get("k")
+        editor.u_k = cfg.get("u_k")
+        editor.norte_angulo = cfg.get("norte_angulo", 0)
+        editor._criado_em = meta.get("criado_em")
         if editor.calibrado and editor.k:
             editor.label_escala.config(
                 text=f"k={editor.k*1000:.3f}mm/px",

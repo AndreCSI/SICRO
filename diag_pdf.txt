@@ -1,0 +1,86 @@
+============================================================
+1. _exportar_pdf atual (exato, para substituir)
+============================================================
+    0:     def _exportar_pdf(self):
+    1:         try:
+    2:             from reportlab.pdfgen import canvas as rl
+    3:             from reportlab.lib.pagesizes import A4,landscape
+    4:             from reportlab.lib.units import mm
+    5:         except ImportError:
+    6:             messagebox.showerror("ReportLab","pip install reportlab"); return
+    7:         path=filedialog.asksaveasfilename(
+    8:             defaultextension=".pdf",filetypes=[("PDF","*.pdf")],
+    9:             initialfile=f"Croqui_BO_{self.dados_caso.get('bo','').replace('/','_')}.pdf")
+   10:         if not path: return
+   11:         W_pt,H_pt=landscape(A4)
+   12:         cv=rl.Canvas(path,pagesize=(W_pt,H_pt))
+   13:         cv.setFont("Helvetica-Bold",14)
+   14:         cv.drawCentredString(W_pt/2,H_pt-20*mm,"SICRO PCI/AP — CROQUI DE AMARRAÇÃO")
+   15:         cv.setFont("Helvetica",10)
+   16:         cv.drawCentredString(W_pt/2,H_pt-27*mm,
+   17:             f"BO Nº {self.dados_caso.get('bo','')}  ·  "
+   18:             f"{self.dados_caso.get('local','')}  ·  "
+   19:             f"{self.dados_caso.get('data','')}")
+   20:         if PIL_OK:
+   21:             try:
+   22:                 from PIL import ImageGrab
+   23:                 x0=self.canvas.winfo_rootx(); y0=self.canvas.winfo_rooty()
+   24:                 x1=x0+self.canvas.winfo_width(); y1=y0+self.canvas.winfo_height()
+   25:                 img=ImageGrab.grab(bbox=(x0,y0,x1,y1))
+   26:                 tmp=Path.home()/"SicroPCIAP"/"_tmp.png"
+   27:                 img.save(tmp)
+   28:                 cv.drawImage(str(tmp),15*mm,15*mm,
+   29:                              width=W_pt-30*mm,height=H_pt-50*mm,
+   30:                              preserveAspectRatio=True)
+   31:                 tmp.unlink(missing_ok=True)
+   32:             except Exception: pass
+   33:         cv.setFont("Helvetica",8)
+   34:         cv.drawString(15*mm,8*mm,
+   35:             f"Perito: {self.dados_caso.get('perito','')}  ·  "
+   36:             f"SICRO PCI/AP  ·  {datetime.date.today()}")
+   37:         if self.calibrado and self.k:
+   38:             cv.drawRightString(W_pt-15*mm,8*mm,
+   39:                 f"k={self.k:.5f} m/px  |  ±{self.u_k*1000:.3f}mm/px")
+   40:         cv.save()
+   41:         messagebox.showinfo("PDF exportado",f"Salvo:\n{path}")
+   42: 
+
+2. Metodos de zoom (para zoom total antes de capturar):
+  L1492:     def _zoom_d(self
+  L2900:     def _zoom_d(self
+
+3. TIPO_INFO (icones/nomes para legenda):
+
+4. Estrutura de elemento (chaves usadas):
+  "label": 34x
+  "tipo": 63x
+  "x": 135x
+  "y": 90x
+  "larg": 14x
+  "alt": 15x
+  "angulo": 15x
+  "x2": 60x
+  "y2": 51x
+  "cor": 18x
+
+5. self.k / calibrado / _mt / cota (para distancias):
+  L689: self.k
+  L688: self.calibrado
+  L1487: def _mt
+  L2388: tipo=="cota"
+  L664: "cota"
+
+6. Brasao — como main.py carrega (_brasao):
+  main.py L175: ...       self._frame  = None         self._brasao = None          arq = Path(__file__).parent / "brasao_pci_ap.p...
+  main.py L177: ...         arq = Path(__file__).parent / "brasao_pci_ap.png"         if PIL_OK:             try:                ...
+  main.py L177: ...= Path(__file__).parent / "brasao_pci_ap.png"         if PIL_OK:             try:                 if arq.exist...
+  main.py L181: ... arq.exists():                     self._brasao = Image.open(arq).convert("RGBA")             except Exception...
+  main.py L185: ...         splash = SplashScreen(self, img_brasao=self._brasao)         self.update()         self.after(4000, l...
+  main.py L185: ...sh = SplashScreen(self, img_brasao=self._brasao)         self.update()         self.after(4000, lambda: self._...
+  main.py L205: ...r,                                   img_brasao=self._brasao))      def _novo(self, modo):         # modo: "ze...
+  main.py L205: ...                        img_brasao=self._brasao))      def _novo(self, modo):         # modo: "zero" (manual),...
+  main.py L224: ...  filetypes=[("Imagens", "*.jpg *.jpeg *.png *.tif")])             if not cam:                 return         ...
+
+7. config DIR / paths:
+  config L49: DIR_CROQUIS = Path.home() / "SicroPCIAP" / "croquis"
+  config L52: DIR_ASSETS = resource_path("assets/veiculos")

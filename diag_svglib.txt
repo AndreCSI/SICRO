@@ -1,0 +1,23 @@
+============================================================
+DIAGNOSTICO DEPENDENCIAS — MOTOR SVG
+============================================================
+Python: 3.14.5
+Executavel: C:\Users\perit\AppData\Local\Python\pythoncore-3.14-64\python.exe
+
+Bibliotecas:
+  [OK]    svglib 1.6.0
+  [OK]    reportlab 4.5.1
+  [OK]    PIL 12.2.0
+  [OK]    lxml 6.1.0
+
+============================================================
+TESTE FUNCIONAL (SVG ficticio -> troca cor -> PNG)
+============================================================
+Troca de cor: #CC0000 -> #1E88E5
+Ocorrencias trocadas: 1
+svg2rlg OK — dimensoes: 100 x 60
+Rasterizacao OK — PNG (100, 60), modo RGB
+Pixel central RGB: (30, 136, 229)  (esperado proximo de azul ~30,136,229)
+Rotacao 45deg OK — novo size (114, 114)
+
+>>> MOTOR SVG VIAVEL NESTE AMBIENTE <<<

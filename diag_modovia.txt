@@ -1,0 +1,33 @@
+============================================================
+Modo Via — botao e acionamento
+============================================================
+  L945 [Modo Via]: ...                        self._reset_view)) |  |         # Botao Modo Via na base |         tk.Frame(inner, bg=FUNDO_PAINEL).pack(fill="x", expand=True) |         tk.Fra...
+  L686 [_modo_via]: ...via: False = modo normal, True = modo arte/via |         self._modo_via  = False |  |         self.calibrado  = False |         self.k          = None |         self.cali...
+  L686 [modo_via]: ...ia: False = modo normal, True = modo arte/via |         self._modo_via  = False |  |         self.calibrado  = False |         self.k          = None |         self.calib...
+  L949 [_btn_modo_via]: ...nner, bg=AZUL_BORDA, height=1).pack(fill="x") |  |         self._btn_modo_via = tk.Frame(inner, bg="#162810", cursor="hand2") |         self._btn_modo_via.pack(fill="...
+
+--- metodo que ativa o modo via (toggle) ---
+
+--- onde o botao 'Modo Via' e criado ---
+--- L945 ---
+  
+          self._btns_zoom.append(_criar_btn_zoom(inner, "⌂", "Zoom total",
+                                                  self._reset_view))
+  
+          # Botao Modo Via na base
+          tk.Frame(inner, bg=FUNDO_PAINEL).pack(fill="x", expand=True)
+          tk.Frame(inner, bg=AZUL_BORDA, height=1).pack(fill="x")
+  
+          self._btn_modo_via = tk.Frame(inner, bg="#162810", cursor="hand2")
+          self._btn_modo_via.pack(
+
+
+--- self._modo_via referencias (estado) ---
+  L686: self._modo_via  = False
+  L1398: self._modo_via = not self._modo_via
+  L1398: self._modo_via
+  L1399: self._modo_via:
+  L1534: self._modo_via:
+  L1606: self._modo_via:
+  L1721: self._modo_via:
+  L2086: self._modo_via:

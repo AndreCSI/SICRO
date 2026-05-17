@@ -1,0 +1,235 @@
+============================================================
+main.py — fluxo de novo croqui
+============================================================
+L30 [DialogoDadosCaso]: ...TelaInicial | from ui.dialogo_caso import DialogoDadosCaso | from ui.editor_croqui import EditorCroqui | from popups.popup_modelo_via import PopupModeloVia |  |  | class Ti...
+L32 [PopupModeloVia]: ...qui | from popups.popup_modelo_via import PopupModeloVia |  |  | class TitleBar: |     """Barra de titulo customizada — substitui a barra padrao do Windows.""" |  |     def _...
+L203 [_novo]: ...lf, |                                   on_novo=self._novo, |                                   on_abrir=self._abrir, |                                   img_brasao=s...
+L203 [on_novo]: ...self, |                                   on_novo=self._novo, |                                   on_abrir=self._abrir, |                                   img_brasao...
+L208 [modo=]: ...): |         dlg = DialogoDadosCaso(self, modo=modo) |         self.wait_window(dlg) |         if not dlg.resultado: |             return |  |         img_drone = None |     ...
+L29 [TelaInicial]: ...plashScreen | from ui.tela_inicial import TelaInicial | from ui.dialogo_caso import DialogoDadosCaso | from ui.editor_croqui import EditorCroqui | from popups.popup_mod...
+
+--- Metodo(s) que usam DialogoDadosCaso / PopupModeloVia ---
+
+--- def _novo (L207) ---
+    0:     def _novo(self, modo):
+    1:         dlg = DialogoDadosCaso(self, modo=modo)
+    2:         self.wait_window(dlg)
+    3:         if not dlg.resultado:
+    4:             return
+    5: 
+    6:         img_drone = None
+    7:         if modo == "drone":
+    8:             if not PIL_OK:
+    9:                 messagebox.showerror("Pillow", "pip install Pillow")
+   10:                 return
+   11:             cam = filedialog.askopenfilename(
+   12:                 title="Foto do drone (ja retificada)",
+   13:                 filetypes=[("Imagens", "*.jpg *.jpeg *.png *.tif")])
+   14:             if not cam:
+   15:                 return
+   16:             img_drone = Image.open(cam)
+   17: 
+   18:         popup = PopupModeloVia(self)
+   19:         self.wait_window(popup)
+   20:         res = popup.resultado or {"icone": "branco"}
+   21: 
+   22:         els = []
+   23:         if res.get("icone", "branco") != "branco":
+   24:             W = max(self.winfo_width(), 800)
+   25:             H = max(self.winfo_height(), 600)
+   26:             els = gerar_elementos_modelo(res["icone"], W, H)
+   27: 
+   28:         editor = EditorCroqui(self, dlg.resultado, modo=modo,
+   29:                               img_drone=img_drone, elementos_iniciais=els)
+   30:         self._trocar(editor)
+   31: 
+
+--- def _abrir (L239) ---
+    0:     def _abrir(self, caminho):
+    1:         try:
+    2:             with open(caminho, encoding="utf-8") as f:
+    3:                 dados = json.load(f)
+    4:         except Exception as e:
+    5:             messagebox.showerror("Erro", str(e))
+    6:             return
+    7:         caso = {k: dados[k] for k in
+    8:                 ("bo", "requisicao", "local", "municipio", "perito", "data")
+    9:                 if k in dados}
+   10:         editor = EditorCroqui(self, caso,
+   11:                               modo=dados.get("modo", "zero"),
+   12:                               elementos_iniciais=dados.get("elementos", []))
+   13:         editor.calibrado = dados.get("calibrado", False)
+   14:         editor.k   = dados.get("k")
+   15:         editor.u_k = dados.get("u_k")
+   16:         if editor.calibrado and editor.k:
+   17:             editor.label_escala.config(
+   18:                 text=f"k={editor.k*1000:.3f}mm/px",
+   19:                 fg=COR_SUCESSO)
+   20:         editor._redesenhar()
+   21:         self._trocar(editor)
+   22: 
+
+============================================================
+popup_modelo_via.py COMPLETO
+============================================================
+  1: import tkinter as tk
+  2: import sys
+  3: from pathlib import Path
+  4: _raiz = Path(__file__).parent.parent
+  5: if str(_raiz) not in sys.path:
+  6:     sys.path.insert(0, str(_raiz))
+  7: from config import (
+  8:     COR_FUNDO, COR_PAINEL, COR_CARD,
+  9:     AMARELO, BRANCO, CINZA_CLARO, CINZA_MEDIO,
+ 10:     AZUL_MEDIO, CINZA_ESCURO,
+ 11:     COR_TEXTO, COR_TEXTO_SEC,
+ 12:     FONTE_SUB, FONTE_PEQ,
+ 13:     MODELOS_VIA,
+ 14: )
+ 15: 
+ 16: 
+ 17: class PopupModeloVia(tk.Toplevel):
+ 18:     def __init__(self, parent):
+ 19:         super().__init__(parent)
+ 20:         self.title('Modelo de via')
+ 21:         self.configure(bg=COR_FUNDO)
+ 22:         self.resizable(False, False)
+ 23:         self.grab_set()
+ 24:         self.resultado = None
+ 25:         w, h = 460, 200
+ 26:         sw, sh = self.winfo_screenwidth(), self.winfo_screenheight()
+ 27:         self.geometry(f'{w}x{h}+{(sw-w)//2}+{(sh-h)//2}')
+ 28:         tk.Frame(self, bg=AMARELO, height=4).pack(fill='x')
+ 29:         corpo = tk.Frame(self, bg=COR_FUNDO)
+ 30:         corpo.pack(fill='both', expand=True, padx=28, pady=20)
+ 31:         tk.Label(corpo, text='Como deseja iniciar o croqui?',
+ 32:                  font=FONTE_SUB, bg=COR_FUNDO, fg=COR_TEXTO).pack(pady=(0,16))
+ 33:         btns = tk.Frame(corpo, bg=COR_FUNDO)
+ 34:         btns.pack()
+ 35:         self._btn(btns, 'Usar modelo de via',
+ 36:                   'Escolha um template pronto\nde cruzamento ou rua',
+ 37:                   AZUL_MEDIO, self._usar_modelo).pack(side='left', padx=10)
+ 38:         self._btn(btns, 'Desenhar do zero',
+ 39:                   'Canvas vazio, voce desenha\ntudo manualmente',
+ 40:                   CINZA_ESCURO, self._do_zero).pack(side='left', padx=10)
+ 41:         tk.Frame(self, bg=AMARELO, height=4).pack(fill='x', side='bottom')
+ 42: 
+ 43:     def _btn(self, parent, titulo, desc, cor, cmd):
+ 44:         f = tk.Frame(parent, bg=cor, cursor='hand2')
+ 45:         tk.Frame(f, bg=AMARELO, height=3).pack(fill='x')
+ 46:         tk.Label(f, text=titulo, font=('Segoe UI',10,'bold'),
+ 47:                  bg=cor, fg=BRANCO).pack(padx=16, pady=(10,2))
+ 48:         tk.Label(f, text=desc, font=FONTE_PEQ, bg=cor, fg=CINZA_CLARO,
+ 49:                  justify='center').pack(padx=16, pady=(0,12))
+ 50:         for w in [f]+list(f.winfo_children()):
+ 51:             w.bind('<Button-1>', lambda e,c=cmd: c())
+ 52:         return f
+ 53: 
+ 54:     def _usar_modelo(self):
+ 55:         self.withdraw()
+ 56:         grid = GridModelos(self.winfo_toplevel())
+ 57:         self.winfo_toplevel().wait_window(grid)
+ 58:         self.resultado = grid.resultado
+ 59:         self.destroy()
+ 60: 
+ 61:     def _do_zero(self):
+ 62:         self.resultado = {'icone': 'branco'}
+ 63:         self.destroy()
+ 64: 
+ 65: 
+ 66: class GridModelos(tk.Toplevel):
+ 67:     def __init__(self, parent):
+ 68:         super().__init__(parent)
+ 69:         self.title('Escolha o modelo de via')
+ 70:         self.configure(bg=COR_FUNDO)
+ 71:         self.resizable(False, False)
+ 72:         self.grab_set()
+ 73:         self.resultado = None
+ 74:         w, h = 680, 560
+ 75:         sw, sh = self.winfo_screenwidth(), self.winfo_screenheight()
+ 76:         self.geometry(f'{w}x{h}+{(sw-w)//2}+{(sh-h)//2}')
+ 77:         tk.Frame(self, bg=AMARELO, height=4).pack(fill='x')
+ 78:         cab = tk.Frame(self, bg=COR_PAINEL)
+ 79:         cab.pack(fill='x')
+ 80:         tk.Label(cab, text='Modelos de via', font=FONTE_SUB,
+ 81:                  bg=COR_PAINEL, fg=COR_TEXTO).pack(side='left', padx=16, pady=10)
+ 82:         tk.Label(cab, text='Clique no modelo para iniciar',
+ 83:                  font=FONTE_PEQ, bg=COR_PAINEL, fg=COR_TEXTO_SEC).pack(side='right', padx=16)
+ 84:         gf = tk.Frame(self, bg=COR_FUNDO)
+ 85:         gf.pack(fill='both', expand=True, padx=14, pady=14)
+ 86:         for idx, m in enumerate(MODELOS_VIA):
+ 87:             self._card(gf, m, idx//3, idx%3)
+ 88:         tk.Frame(self, bg=AMARELO, height=4).pack(fill='x', side='bottom')
+ 89: 
+ 90:     def _card(self, parent, modelo, row, col):
+ 91:         card = tk.Frame(parent, bg=COR_CARD, cursor='hand2', width=190, height=140)
+ 92:         card.grid(row=row, column=col, padx=6, pady=6, sticky='nsew')
+ 93:         card.grid_propagate(False)
+ 94:         parent.grid_rowconfigure(row, weight=1)
+ 95:         parent.grid_columnconfigure(col, weight=1)
+ 96:         prev = tk.Canvas(card, width=140, height=80, bg='#0D1830', highlightthickness=0)
+ 97:         prev.pack(pady=(10,4))
+ 98:         self._preview(prev, modelo['icone'])
+ 99:         tk.Label(card, text=modelo['nome'], font=('Segoe UI',9,'bold'),
+100:                  bg=COR_CARD, fg=COR_TEXTO).pack()
+101:         def sel(m=modelo):
+102:             self.resultado = m
+103:             self.destroy()
+104:         card.bind('<Button-1>', lambda e: sel())
+105:         prev.bind('<Button-1>', lambda e: sel())
+106:         for w in card.winfo_children():
+107:             w.bind('<Button-1>', lambda e, m=modelo: self._sel(m))
+108:         card.bind('<Enter>', lambda e, f=card: f.config(bg='#2A3060'))
+109:         card.bind('<Leave>', lambda e, f=card: f.config(bg=COR_CARD))
+110: 
+111:     def _sel(self, m):
+112:         self.resultado = m
+113:         self.destroy()
+114: 
+115:     def _preview(self, c, icone):
+116:         W, H = 140, 80
+117:         cx, cy = W//2, H//2
+118:         via = 18
+119:         def asf(x1,y1,x2,y2): c.create_rectangle(x1,y1,x2,y2,fill='#606060',outline='')
+120:         def cal(x1,y1,x2,y2): c.create_rectangle(x1,y1,x2,y2,fill='#909090',outline='')
+121:         def fh(y):
+122:             for x in range(0,W,14): c.create_line(x,y,x+8,y,fill=AMARELO,width=1)
+123:         def fv(x):
+124:             for y in range(0,H,10): c.create_line(x,y,x,y+6,fill=AMARELO,width=1)
+125:         if icone=='cruzamento_mais':
+126:             cal(0,0,cx-via,cy-via); cal(cx+via,0,W,cy-via)
+127:             cal(0,cy+via,cx-via,H); cal(cx+via,cy+via,W,H)
+128:             asf(0,cy-via,W,cy+via); asf(cx-via,0,cx+via,H)
+129:             fh(cy); fv(cx)
+130:         elif icone=='cruzamento_t':
+131:             cal(0,0,cx-via,cy-via); cal(cx+via,0,W,cy-via); cal(0,cy+via,W,H)
+132:             asf(0,cy-via,W,cy+via); asf(cx-via,0,cx+via,cy+via)
+133:             fh(cy); fv(cx)
+134:         elif icone=='rua_reta':
+135:             cal(0,0,W,cy-via); cal(0,cy+via,W,H)
+136:             asf(0,cy-via,W,cy+via); fh(cy)
+137:         elif icone=='avenida':
+138:             cant=6
+139:             cal(0,0,W,cy-via-cant); cal(0,cy+via+cant,W,H)
+140:             asf(0,cy-via-cant,W,cy-cant); asf(0,cy+cant,W,cy+via+cant)
+141:             c.create_rectangle(0,cy-cant,W,cy+cant,fill='#2A6A2A',outline='')
+142:             fh(cy-via//2-cant); fh(cy+via//2+cant)
+143:         elif icone=='rotatoria':
+144:             cal(0,0,W,H)
+145:             r_e=min(cx,cy)-4; r_i=r_e//2
+146:             c.create_oval(cx-r_e,cy-r_e,cx+r_e,cy+r_e,fill='#606060',outline='')
+147:             c.create_oval(cx-r_i,cy-r_i,cx+r_i,cy+r_i,fill='#2A6A2A',outline='')
+148:             c.create_oval(cx-r_e,cy-r_e,cx+r_e,cy+r_e,fill='',outline=AMARELO,width=1)
+149:         elif icone=='estrada':
+150:             c.create_rectangle(0,0,W,H,fill='#3A2A18',outline='')
+151:             asf(0,cy-via,W,cy+via)
+152:             c.create_line(0,cy,W,cy,fill=BRANCO,width=1,dash=(8,6))
+153:         elif icone in ('cruzamento_y','rua_curva'):
+154:             cal(0,0,W,H)
+155:             asf(0,cy-via,cx+via,cy+via)
+156:             asf(cx-via,cy-via,cx+via,H)
+157:         else:
+158:             c.create_rectangle(0,0,W,H,fill='#0D1830',outline='')
+159:             c.create_text(cx,cy,text='Canvas\nlivre',fill=CINZA_MEDIO,
+160:                           font=('Segoe UI',9),justify='center')
+161: 

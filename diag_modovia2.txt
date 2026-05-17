@@ -1,0 +1,87 @@
+--- Criacao do _btn_modo_via (L949 +- contexto) ---
+  
+          tk.Frame(inner, bg=AZUL_BORDA, height=1).pack(fill="x")
+  
+          self._btn_modo_via = tk.Frame(inner, bg="#162810", cursor="hand2")
+          self._btn_modo_via.pack(fill="x")
+          tk.Frame(self._btn_modo_via, bg=DOURADO, width=3).pack(side="left", fill="y")
+          tk.Label(self._btn_modo_via, text="🛣",
+                   font=("Segoe UI", 14),
+                   bg="#162810", fg=DOURADO,
+                   width=2).pack(side="left", padx=(8,4), pady=10)
+          tk.Label(self._btn_modo_via, text="Modo Via",
+                   font=FONTE_SMALL_BOLD,
+                   bg="#162810", fg=DOURADO,
+                   anchor="w").pack(side="left", fill="x", expand=True)
+          for w in [self._btn_modo_via] + list(self._btn_modo_via.winfo_children()):
+              w.bind("<Button-1>", lambda e: self._toggle_modo_via())
+              w.bind("<Enter>", lambda e: hasattr(self, "status") and
+                     self.status.config(text="Editor de Via — alterna modo arte"))
+
+--- Linha 1398 (toggle _modo_via) com contexto ---
+  
+          dlg = DialogoRedimensionar(self.winfo_toplevel(), el, self._redesenhar)
+          self.winfo_toplevel().wait_window(dlg)
+          self._atualizar_camadas()
+          self._redesenhar()
+  
+      # ──────────────────────────────────────────
+      #  FERRAMENTAS
+      # ──────────────────────────────────────────
+      def _toggle_modo_via(self):
+          """Alterna entre modo normal e modo arte/via no mesmo canvas."""
+          self._modo_via = not self._modo_via
+          if self._modo_via:
+              # Entra no modo via
+              self._btn_modo_via.config(bg="#2A5A1A", fg=BRANCO)
+              self.status.config(text="🛣 Modo Via ativo — ferramentas de infraestrutura")
+              # Oculta botões normais, mostra botões de via
+              for btn in self.btns_ferr.values():
+                  btn.pack_forget()
+              self._sep_zoom.pack_forget()
+              for b in self._btns_zoom:
+                  b.pack_forget()
+              # Repack zoom depois dos b
+
+--- metodo que contem o toggle (def ...) ---
+  def _toggle_modo_via (contem o toggle):
+    0:     def _toggle_modo_via(self):
+    1:         """Alterna entre modo normal e modo arte/via no mesmo canvas."""
+    2:         self._modo_via = not self._modo_via
+    3:         if self._modo_via:
+    4:             # Entra no modo via
+    5:             self._btn_modo_via.config(bg="#2A5A1A", fg=BRANCO)
+    6:             self.status.config(text="🛣 Modo Via ativo — ferramentas de infraestrutura")
+    7:             # Oculta botões normais, mostra botões de via
+    8:             for btn in self.btns_ferr.values():
+    9:                 btn.pack_forget()
+   10:             self._sep_zoom.pack_forget()
+   11:             for b in self._btns_zoom:
+   12:                 b.pack_forget()
+   13:             # Repack zoom depois dos botões de via
+   14:             self._sep_zoom.pack(fill="x", pady=2)
+   15:             for chave, icone, dica in FERRAMENTAS_VIA:
+   16:                 self.btns_via[chave].pack(pady=1, padx=3)
+   17:             for b in self._btns_zoom:
+   18:                 b.pack(pady=1, padx=3)
+   19:             self._ferr_via = "asfalto"
+   20:             self._set_ferr_via("asfalto")
+   21:         else:
+   22:             # Sai do modo via
+   23:             self._btn_modo_via.config(bg="#162810", fg=AMARELO)
+   24:             self.status.config(text="Modo Normal")
+   25:             # Oculta botões de via, mostra normais
+   26:             for btn in self.btns_via.values():
+   27:                 btn.pack_forget()
+   28:             self._sep_zoom.pack_forget()
+   29:             for b in self._btns_zoom:
+   30:                 b.pack_forget()
+   31:             self._sep_zoom.pack(fill="x", pady=3)
+   32:             for chave, icone, dica in self.FERRAMENTAS:
+   33:                 self.btns_ferr[chave].pack(pady=1, padx=3)
+   34:             for b in self._btns_zoom:
+   35:                 b.pack(pady=1, padx=3)
+   36:             self._ferr_via = None
+   37:             self._set_ferr("sel")
+   38:         self._redesenhar()
+   39: 

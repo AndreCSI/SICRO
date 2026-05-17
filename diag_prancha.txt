@@ -1,0 +1,96 @@
+============================================================
+1. TIPO_INFO / nomes de tipo (legenda automatica)
+============================================================
+  ui/editor_croqui.py L1822: sig={"carro":"V","moto":"V","caminhao":"V","bicicleta":"B","pedestre":"P"}
+--- config.py ---
+  TIPO_INFO = {
+      "carro":          ("🚗", "Carro"),
+      "moto":           ("🏍", "Moto"),
+      "caminhao":       ("🚚", "Caminhão"),
+      "bicicleta":      ("🚲", "Bicicleta"),
+      "pedestre":       ("🚶", "Pedestre"),
+      "sc":             ("✕",  "Sítio de colisão"),
+      "cota":           ("↔",  "Cota"),
+      "r1":             ("R1", "Eixo R1"),
+      "r2":             ("R2", "Eixo R2"),
+      "via_h":          ("══", "Via horizontal"),
+      "via_v":          ("║",  "Via vertical"),
+      "texto":          ("T",  "Texto"),
+      "_asfalto":       ("▬",  "Asfalto"),
+      "_calcada":       ("▭",  "Calçada"),
+      "_canteiro":      ("▬",  "Canteiro"),
+      "_faixa_h":       ("- -","Faixa H"),
+      "_faixa_v":       ("| |","Faixa V"),
+      "_rotatoria":     ("◎",  "Rotatória"),
+      "_asfalto_terra": ("▬",  "Estrada"),
+      # Tipos do editor de via
+      "v_asfalto":   ("▬",  "Asfalto"),
+      "v_calcada":   ("▭",  "Calçada"),
+      "v_faixa_am":  ("══", "Faixa amarela"),
+      "v_faixa_br":  ("---","Faixa branca"),
+      "v_faixa_ped": ("⊟",  "Faixa pedestre"),
+      "v_rotatoria": ("◎",  "Rotatória"),
+      "v_semaforo":  ("⬛", "Semáforo"),
+      "v_placa":     ("⬡",  "Placa"),
+      "v_arvore":    ("✿",  "Árvore"),
+      "v_poste":     ("⌂",  "Poste"),
+      "v_conflito":  ("⚠",  "Conflito"),
+  }
+
+============================================================
+2. Como elemento cota guarda a medida (quadro distancias)
+============================================================
+    0: tipo=="cota":
+    1:             tx2,ty2=self._mt(el["x2"],el["y2"])
+    2:             c.create_line(tx,ty,tx2,ty2,fill=COR_COTA,width=1,
+    3:                           arrow="both",arrowshape=(6,8,3))
+    4:             c.create_text((tx+tx2)/2,(ty+ty2)/2-8,text=label,
+    5:                           fill=COR_COTA,font=FONTE_MONO,anchor="s"); return
+    6: 
+  L664: "cota",      "↔",  "Cota / medida"),
+
+============================================================
+3. _zoom_d e como ajustar zoom para captura total
+============================================================
+    0:     def _zoom_d(self,f,cx=None,cy=None):
+    1:         if cx is None:
+    2:             cx=self.canvas.winfo_width()/2; cy=self.canvas.winfo_height()/2
+    3:         wx,wy=self._tm(cx,cy)
+    4:         self.zoom=max(0.1,min(10.0,self.zoom*f))
+    5:         self.pan_x=cx-wx*self.zoom; self.pan_y=cy-wy*self.zoom
+    6:         if hasattr(self, '_st_zoom'):
+    7:             self._st_zoom.config(text=f' {int(self.zoom*100)}%')
+    8: 
+    9:         self._redesenhar()
+   10: 
+  L942 [Zoom total]: Zoom total",
+
+============================================================
+4. self.canvas / pan / zoom / _redesenhar (estado p/ captura)
+============================================================
+  L693: self.zoom  = 1.0
+  L694: self.pan_x = 0
+  L695: self.pan_y = 0
+  L2051: def _redesenhar(self):
+  L968: self.canvas = tk.Canvas(cf, bg="#0A1020",
+
+============================================================
+5. dados_caso chaves disponiveis
+============================================================
+  bo
+  local
+  bo
+  requisicao
+  local
+  municipio
+  perito
+  data
+  bo
+  bo
+  bo
+  local
+  data
+  perito
+
+6. Brasao acessivel do editor? (winfo_toplevel._brasao)
+  L238: _brasao=None):

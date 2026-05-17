@@ -1,0 +1,168 @@
+============================================================
+DIAGNOSTICO dialogo_caso.py
+============================================================
+Linhas: 265
+
+--- Imports ---
+  import tkinter as tk
+  import datetime
+  import calendar
+  import sys
+  from pathlib import Path
+  _raiz = Path(__file__).parent.parent
+  if str(_raiz) not in sys.path:
+      sys.path.insert(0, str(_raiz))
+  from config import (
+      COR_FUNDO, COR_PAINEL, COR_CARD, COR_BORDA,
+      COR_TEXTO_SEC, AMARELO, BRANCO, CINZA_CLARO, CINZA_MEDIO,
+      AZUL_MEDIO, AZUL_CLARO, PRETO_SOFT,
+      FONTE_SUB, FONTE_NORMAL, FONTE_PEQ,
+      MUNICIPIOS_AP,
+  )
+
+--- Classes/defs ---
+  L18: class CalendarioPopup
+  L21: def __init__
+  L43: def _fechar_se_fora
+  L50: def _build
+  L97: def _mes_anterior
+  L102: def _mes_seguinte
+  L107: def _selecionar
+  L114: class DialogoDadosCaso
+  L117: def __init__
+  L173: def _campo_municipio
+  L246: def _campo_data
+  L263: def _ok
+
+--- overrideredirect / title / geometry / configure ---
+  L24: overrideredirect(True)
+  L119: self.title('Dados do caso')
+  L37: geometry(f'260x240+{ex}+{ey}')
+  L25: self.configure(bg=COR_PAINEL)
+  L10: COR_FUNDO, COR_PAINEL, COR_CARD, COR_BORDA,
+  L11: AMARELO, BRANCO, CINZA_CLARO, CINZA_MEDIO,
+  L13: FONTE_SUB, FONTE_NORMAL, FONTE_PEQ,
+
+--- Pergunta modelo/branco (GridModelos/PopupModeloVia/messagebox) ---
+
+--- Arquivo COMPLETO (primeiras 120 linhas) ---
+  1: import tkinter as tk
+  2: import datetime
+  3: import calendar
+  4: import sys
+  5: from pathlib import Path
+  6: _raiz = Path(__file__).parent.parent
+  7: if str(_raiz) not in sys.path:
+  8:     sys.path.insert(0, str(_raiz))
+  9: from config import (
+ 10:     COR_FUNDO, COR_PAINEL, COR_CARD, COR_BORDA,
+ 11:     COR_TEXTO_SEC, AMARELO, BRANCO, CINZA_CLARO, CINZA_MEDIO,
+ 12:     AZUL_MEDIO, AZUL_CLARO, PRETO_SOFT,
+ 13:     FONTE_SUB, FONTE_NORMAL, FONTE_PEQ,
+ 14:     MUNICIPIOS_AP,
+ 15: )
+ 16: 
+ 17: 
+ 18: class CalendarioPopup(tk.Toplevel):
+ 19:     """Calendario nativo em Tkinter puro, sem dependencias externas."""
+ 20: 
+ 21:     def __init__(self, parent, entry_destino):
+ 22:         super().__init__(parent)
+ 23:         self.entry = entry_destino
+ 24:         self.overrideredirect(True)
+ 25:         self.configure(bg=COR_PAINEL)
+ 26:         self.attributes('-topmost', True)
+ 27:         try:
+ 28:             d, m, y = entry_destino.get().strip().split('/')
+ 29:             self._data = datetime.date(int(y), int(m), int(d))
+ 30:         except Exception:
+ 31:             self._data = datetime.date.today()
+ 32:         self._ano = self._data.year
+ 33:         self._mes = self._data.month
+ 34:         self.update_idletasks()
+ 35:         ex = entry_destino.winfo_rootx()
+ 36:         ey = entry_destino.winfo_rooty() + entry_destino.winfo_height()
+ 37:         self.geometry(f'260x240+{ex}+{ey}')
+ 38:         self.lift()
+ 39:         self._build()
+ 40:         self.bind('<FocusOut>', lambda e: self.after(100, self._fechar_se_fora))
+ 41:         self.focus_force()
+ 42: 
+ 43:     def _fechar_se_fora(self):
+ 44:         try:
+ 45:             if not self.focus_get():
+ 46:                 self.destroy()
+ 47:         except Exception:
+ 48:             self.destroy()
+ 49: 
+ 50:     def _build(self):
+ 51:         for w in self.winfo_children():
+ 52:             w.destroy()
+ 53:         tk.Frame(self, bg=AMARELO, height=3).pack(fill='x')
+ 54:         nav = tk.Frame(self, bg=COR_PAINEL)
+ 55:         nav.pack(fill='x', padx=4, pady=4)
+ 56:         tk.Button(nav, text='<', font=('Segoe UI',10), width=2,
+ 57:                   bg=COR_PAINEL, fg=BRANCO, relief='flat', cursor='hand2',
+ 58:                   command=self._mes_anterior).pack(side='left')
+ 59:         tk.Button(nav, text='>', font=('Segoe UI',10), width=2,
+ 60:                   bg=COR_PAINEL, fg=BRANCO, relief='flat', cursor='hand2',
+ 61:                   command=self._mes_seguinte).pack(side='right')
+ 62:         MESES = ['Janeiro','Fevereiro','Marco','Abril','Maio','Junho',
+ 63:                  'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+ 64:         tk.Label(nav, text=f'{MESES[self._mes-1]} {self._ano}',
+ 65:                  font=('Segoe UI',10,'bold'),
+ 66:                  bg=COR_PAINEL, fg=AMARELO).pack(expand=True)
+ 67:         dias_sem = tk.Frame(self, bg=COR_PAINEL)
+ 68:         dias_sem.pack(fill='x', padx=4)
+ 69:         for ds in ['Dom','Seg','Ter','Qua','Qui','Sex','Sab']:
+ 70:             tk.Label(dias_sem, text=ds, font=('Segoe UI',8),
+ 71:                      bg=COR_PAINEL, fg=CINZA_MEDIO, width=3).pack(side='left')
+ 72:         tk.Frame(self, bg=COR_BORDA, height=1).pack(fill='x', padx=4, pady=2)
+ 73:         grid = tk.Frame(self, bg=COR_PAINEL)
+ 74:         grid.pack(fill='both', expand=True, padx=4, pady=2)
+ 75:         cal = calendar.monthcalendar(self._ano, self._mes)
+ 76:         hoje = datetime.date.today()
+ 77:         for semana in cal:
+ 78:             row_f = tk.Frame(grid, bg=COR_PAINEL)
+ 79:             row_f.pack(fill='x')
+ 80:             for dia in semana:
+ 81:                 if dia == 0:
+ 82:                     tk.Label(row_f, text='', width=3, bg=COR_PAINEL).pack(side='left')
+ 83:                 else:
+ 84:                     d = datetime.date(self._ano, self._mes, dia)
+ 85:                     is_hoje = (d == hoje)
+ 86:                     is_sel  = (d == self._data)
+ 87:                     bg = AMARELO if is_sel else AZUL_MEDIO if is_hoje else COR_PAINEL
+ 88:                     fg = PRETO_SOFT if is_sel else BRANCO
+ 89:                     tk.Button(row_f, text=str(dia), width=3,
+ 90:                               font=('Segoe UI',9,'bold' if is_hoje or is_sel else 'normal'),
+ 91:                               bg=bg, fg=fg,
+ 92:                               activebackground=AZUL_CLARO,
+ 93:                               relief='flat', cursor='hand2',
+ 94:                               command=lambda d=d: self._selecionar(d)).pack(side='left')
+ 95:         tk.Frame(self, bg=AMARELO, height=3).pack(fill='x', side='bottom')
+ 96: 
+ 97:     def _mes_anterior(self):
+ 98:         if self._mes == 1: self._mes=12; self._ano-=1
+ 99:         else: self._mes -= 1
+100:         self._build()
+101: 
+102:     def _mes_seguinte(self):
+103:         if self._mes == 12: self._mes=1; self._ano+=1
+104:         else: self._mes += 1
+105:         self._build()
+106: 
+107:     def _selecionar(self, data):
+108:         self._data = data
+109:         self.entry.delete(0, tk.END)
+110:         self.entry.insert(0, data.strftime('%d/%m/%Y'))
+111:         self.destroy()
+112: 
+113: 
+114: class DialogoDadosCaso(tk.Toplevel):
+115:     """Formulario de dados do caso: BO, requisicao, local, municipio, perito, data."""
+116: 
+117:     def __init__(self, parent, modo='zero'):
+118:         super().__init__(parent)
+119:         self.title('Dados do caso')
+120:         self.configure(bg=COR_FUNDO)

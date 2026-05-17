@@ -1,0 +1,200 @@
+============================================================
+dialogo_caso.py — L114 ate fim (DialogoDadosCaso)
+============================================================
+114: class DialogoDadosCaso(tk.Toplevel):
+115:     """Formulario de dados do caso: BO, requisicao, local, municipio, perito, data."""
+116: 
+117:     def __init__(self, parent, modo='zero'):
+118:         super().__init__(parent)
+119:         self.title('Dados do caso')
+120:         self.configure(bg=COR_FUNDO)
+121:         self.resizable(False, False)
+122:         self.grab_set()
+123:         self.resultado = None
+124:         w, h = 480, 400
+125:         sw, sh = self.winfo_screenwidth(), self.winfo_screenheight()
+126:         self.geometry(f'{w}x{h}+{(sw-w)//2}+{(sh-h)//2}')
+127:         tk.Frame(self, bg=AMARELO, height=4).pack(fill='x')
+128:         corpo = tk.Frame(self, bg=COR_FUNDO)
+129:         corpo.pack(fill='both', expand=True, padx=24, pady=16)
+130:         titulo = 'Croqui do zero' if modo=='zero' else 'Croqui sobre drone'
+131:         tk.Label(corpo, text=f'  {titulo}',
+132:                  font=FONTE_SUB, bg=COR_FUNDO, fg=AMARELO).pack(anchor='w', pady=(0,12))
+133:         campos = [
+134:             ('No do BO',           'bo',         ''),
+135:             ('No da Requisicao',   'requisicao',  ''),
+136:             ('Local (ruas/av.)',   'local',       ''),
+137:             ('Municipio',          'municipio',   'Porto Grande'),
+138:             ('Perito responsavel', 'perito',      'Andre Ricardo Barroso'),
+139:             ('Data do exame',      'data',        datetime.date.today().strftime('%d/%m/%Y')),
+140:         ]
+141:         self.entradas = {}
+142:         self._dd_win  = None
+143:         for label, chave, ph in campos:
+144:             row = tk.Frame(corpo, bg=COR_FUNDO)
+145:             row.pack(fill='x', pady=3)
+146:             tk.Label(row, text=label, font=FONTE_PEQ, width=20,
+147:                      anchor='w', bg=COR_FUNDO, fg=COR_TEXTO_SEC).pack(side='left')
+148:             if chave == 'municipio':
+149:                 e = self._campo_municipio(row, ph)
+150:             elif chave == 'data':
+151:                 e = self._campo_data(row, ph)
+152:             else:
+153:                 e = tk.Entry(row, font=FONTE_NORMAL,
+154:                              bg=COR_CARD, fg=BRANCO,
+155:                              insertbackground=BRANCO, relief='flat', bd=4)
+156:                 e.insert(0, ph)
+157:                 e.pack(side='left', fill='x', expand=True)
+158:             self.entradas[chave] = e
+159:         tk.Frame(corpo, bg=COR_BORDA, height=1).pack(fill='x', pady=10)
+160:         btns = tk.Frame(corpo, bg=COR_FUNDO)
+161:         btns.pack(fill='x')
+162:         tk.Button(btns, text='Cancelar', font=FONTE_NORMAL, cursor='hand2',
+163:                   bg=COR_CARD, fg=COR_TEXTO_SEC, activebackground=COR_BORDA,
+164:                   relief='flat', padx=14, pady=5,
+165:                   command=self.destroy).pack(side='right', padx=(6,0))
+166:         tk.Button(btns, text='Criar croqui ->',
+167:                   font=('Segoe UI',10,'bold'), cursor='hand2',
+168:                   bg=AZUL_MEDIO, fg=BRANCO, activebackground=AZUL_CLARO,
+169:                   relief='flat', padx=14, pady=5,
+170:                   command=self._ok).pack(side='right')
+171:         tk.Frame(self, bg=AMARELO, height=4).pack(fill='x', side='bottom')
+172: 
+173:     def _campo_municipio(self, row, ph):
+174:         mframe = tk.Frame(row, bg=COR_CARD)
+175:         mframe.pack(side='left', fill='x', expand=True)
+176:         e = tk.Entry(mframe, font=FONTE_NORMAL,
+177:                      bg=COR_CARD, fg=BRANCO,
+178:                      insertbackground=BRANCO, relief='flat', bd=4)
+179:         e.insert(0, ph)
+180:         e.pack(side='left', fill='x', expand=True)
+181:         btn_dd = tk.Button(mframe, text='v', font=('Segoe UI',10),
+182:                            bg=COR_CARD, fg=CINZA_CLARO,
+183:                            activebackground=AZUL_MEDIO,
+184:                            relief='flat', cursor='hand2', padx=4)
+185:         btn_dd.pack(side='right')
+186: 
+187:         def _fechar_dd():
+188:             if self._dd_win and self._dd_win.winfo_exists():
+189:                 self._dd_win.destroy()
+190:             self._dd_win = None
+191: 
+192:         def _mostrar_dd(lista, entry=e):
+193:             _fechar_dd()
+194:             self.update_idletasks()
+195:             ex = mframe.winfo_rootx()
+196:             ey = mframe.winfo_rooty() + mframe.winfo_height()
+197:             ew = mframe.winfo_width()
+198:             altura = min(len(lista), 10) * 24
+199:             win = tk.Toplevel(self)
+200:             win.overrideredirect(True)
+201:             win.geometry(f'{ew}x{altura}+{ex}+{ey}')
+202:             win.configure(bg=COR_CARD)
+203:             win.attributes('-topmost', True)
+204:             win.lift()
+205:             self._dd_win = win
+206:             lb2 = tk.Listbox(win, bg='#1A2A5A', fg=BRANCO,
+207:                              selectbackground=AZUL_MEDIO,
+208:                              selectforeground=BRANCO,
+209:                              font=FONTE_NORMAL, relief='flat', bd=0,
+210:                              activestyle='dotbox',
+211:                              highlightthickness=1,
+212:                              highlightcolor=AZUL_MEDIO)
+213:             lb2.pack(fill='both', expand=True)
+214:             for m in lista:
+215:                 lb2.insert(tk.END, f'  {m}')
+216:             def _sel_dd(event, entry=entry):
+217:                 idx = lb2.nearest(event.y)
+218:                 if idx >= 0:
+219:                     lb2.selection_clear(0, tk.END)
+220:                     lb2.selection_set(idx)
+221:                     val = lb2.get(idx).strip()
+222:                     entry.delete(0, tk.END)
+223:                     entry.insert(0, val)
+224:                 win.after(200, _fechar_dd)
+225:             lb2.bind('<Button-1>', _sel_dd)
+226: 
+227:         def _ao_digitar(event, entry=e):
+228:             txt = entry.get().lower()
+229:             filtrados = [m for m in MUNICIPIOS_AP if txt in m.lower()]
+230:             if filtrados and txt:
+231:                 _mostrar_dd(filtrados, entry)
+232:             else:
+233:                 _fechar_dd()
+234: 
+235:         def _toggle_dd(entry=e):
+236:             if self._dd_win and self._dd_win.winfo_exists():
+237:                 _fechar_dd()
+238:             else:
+239:                 _mostrar_dd(MUNICIPIOS_AP, entry)
+240: 
+241:         e.bind('<KeyRelease>', _ao_digitar)
+242:         e.bind('<Escape>', lambda ev: _fechar_dd())
+243:         btn_dd.config(command=_toggle_dd)
+244:         return e
+245: 
+246:     def _campo_data(self, row, ph):
+247:         dframe = tk.Frame(row, bg=COR_CARD)
+248:         dframe.pack(side='left', fill='x', expand=True)
+249:         e = tk.Entry(dframe, font=FONTE_NORMAL,
+250:                      bg=COR_CARD, fg=BRANCO,
+251:                      insertbackground=BRANCO, relief='flat', bd=4)
+252:         e.insert(0, datetime.date.today().strftime('%d/%m/%Y'))
+253:         e.pack(side='left', fill='x', expand=True)
+254:         btn_cal = tk.Button(dframe, text='Cal', font=('Segoe UI',10),
+255:                             bg=COR_CARD, fg=AMARELO,
+256:                             activebackground=AZUL_MEDIO,
+257:                             relief='flat', cursor='hand2', padx=4)
+258:         btn_cal.pack(side='right')
+259:         btn_cal.config(command=lambda: CalendarioPopup(self, e))
+260:         e.bind('<Button-1>', lambda ev: CalendarioPopup(self, e))
+261:         return e
+262: 
+263:     def _ok(self):
+264:         self.resultado = {k: v.get().strip() for k,v in self.entradas.items()}
+265:         self.destroy()
+266: 
+
+============================================================
+BUSCA da pergunta modelo/branco em TODOS os arquivos
+============================================================
+
+main.py L32 [PopupModeloVia]:
+  ... EditorCroqui | from popups.popup_modelo_via import PopupModeloVia |  |  | class TitleBar: |     """Barra de titulo customizada — substitui a barra padrao do Wi...
+
+main.py L32 [modelo_via]:
+  ...itor_croqui import EditorCroqui | from popups.popup_modelo_via import PopupModeloVia |  |  | class TitleBar: |     """Barra de titulo customizada — substitui a ...
+
+ui/dialogo_caso.py: nada encontrado
+
+ui/tela_inicial.py: nada encontrado
+
+ui/editor_croqui.py L2642 [askyesno]:
+  ...}") |  |     def _voltar(self): |         if messagebox.askyesno("Voltar", |                 "Voltar ao início?\nAlterações não salvas serão perdidas."): |     ...
+
+ui/editor_croqui.py L43 [PopupModeloVia]:
+  ...t PopupPlacas | from popups.popup_modelo_via import PopupModeloVia | from widgets.editor_texto import EditorTextoInline |  | # Aliases para compatibilidade co...
+
+ui/editor_croqui.py L43 [modelo_via]:
+  ...popup_placas import PopupPlacas | from popups.popup_modelo_via import PopupModeloVia | from widgets.editor_texto import EditorTextoInline |  | # Aliases para ...
+
+popups/popup_modelo_via.py L31 [Como deseja]:
+  ..., padx=28, pady=20) |         tk.Label(corpo, text='Como deseja iniciar o croqui?', |                  font=FONTE_SUB, bg=COR_FUNDO, fg=COR_TEXTO).pack(pa...
+
+popups/popup_modelo_via.py L35 [Usar modelo de via]:
+  ...NDO) |         btns.pack() |         self._btn(btns, 'Usar modelo de via', |                   'Escolha um template pronto\nde cruzamento ou rua', |          ...
+
+popups/popup_modelo_via.py L38 [Desenhar do zero]:
+  ...ck(side='left', padx=10) |         self._btn(btns, 'Desenhar do zero', |                   'Canvas vazio, voce desenha\ntudo manualmente', |                ...
+
+popups/popup_modelo_via.py L20 [Modelo de via]:
+  ...     super().__init__(parent) |         self.title('Modelo de via') |         self.configure(bg=COR_FUNDO) |         self.resizable(False, False) |         se...
+
+popups/popup_modelo_via.py L56 [GridModelos]:
+  ...elo(self): |         self.withdraw() |         grid = GridModelos(self.winfo_toplevel()) |         self.winfo_toplevel().wait_window(grid) |         self.resu...
+
+popups/popup_modelo_via.py L17 [PopupModeloVia]:
+  ... FONTE_SUB, FONTE_PEQ, |     MODELOS_VIA, | ) |  |  | class PopupModeloVia(tk.Toplevel): |     def __init__(self, parent): |         super().__init__(parent) |       ...
+
+popups/popup_modelo_via.py L31 [Como deseja iniciar]:
+  ..., padx=28, pady=20) |         tk.Label(corpo, text='Como deseja iniciar o croqui?', |                  font=FONTE_SUB, bg=COR_FUNDO, fg=COR_TEXTO).pack(pa...

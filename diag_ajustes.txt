@@ -1,0 +1,101 @@
+============================================================
+1. messagebox de Voltar e Salvo
+============================================================
+  L1450: messagebox.showinfo("Calibração","Disponível apenas no modo drone.")
+  L2596: messagebox.showinfo("Salvo",f"Croqui salvo:\n{cam}")
+  L2604: messagebox.showerror("ReportLab","pip install reportlab")
+  L2639: messagebox.showinfo("PDF exportado",f"Salvo:\n{path}")
+  L2642: messagebox.askyesno("Voltar",                 "Voltar ao início?\nAlterações não salvas serão perdidas.")
+
+============================================================
+2. Popup de Identificacao (V1) ao inserir veiculo
+============================================================
+  L130 [Identificação]: ....pack(fill="x", pady=4) |             tk.Label(row_lbl, text="Identificação", font=FONTE_PEQ, |                      width=18, anchor="w", |                      bg=COR_FUNDO, fg=COR_TEX...
+  L1824 [ex: V1]: ....askstring( |                 "Identificação","Identificação (ex: V1 — FIORINO):", |                 initialvalue=f"{sig[tipo]}{n}", |                 parent=self.winfo_toplevel()) or f"...
+  L2 [simpledialog]: ...nter as tk | from tkinter import ttk, filedialog, messagebox, simpledialog | import json, math, datetime | import sys | from pathlib import Path | _raiz = Path(__file__).parent.parent | if str...
+  L1757 [askstring]: ...:.3f} m" |             else: |                 val=simpledialog.askstring("Cota","Valor (ex: 3.6):", |                                            parent=self.winfo_toplevel()) |           ...
+  L1824 [FIORINO]: ...g( |                 "Identificação","Identificação (ex: V1 — FIORINO):", |                 initialvalue=f"{sig[tipo]}{n}", |                 parent=self.winfo_toplevel()) or f"{sig[tipo...
+  L1580 [_inserir]: ...                 "pedestre","sc","texto"): |             self._inserir(f,x,y) |  |  |     def _dblclick(self, e): |         """Duplo clique — abre editor de texto se elemento for texto.""" |  ...
+
+--- _inserir COMPLETO ---
+    0:     def _inserir(self,tipo,x,y):
+    1:         label=""
+    2:         modelo_chave = None
+    3:         modelo_larg  = None
+    4:         modelo_alt   = None
+    5:         modelo_cor   = None
+    6: 
+    7:         # ── Popup de seleção de modelo para veículos ──
+    8:         if tipo in ("carro", "moto", "caminhao"):
+    9:             popup = PopupModeloVeiculo(self.winfo_toplevel(), tipo)
+   10:             self.winfo_toplevel().wait_window(popup)
+   11:             if popup.resultado is None:
+   12:                 return   # cancelou / fechou sem escolher
+   13:             m = popup.resultado
+   14:             modelo_chave = m["chave"]
+   15:             modelo_larg  = m["larg"]
+   16:             modelo_alt   = m["alt"]
+   17:             modelo_cor   = m["cor"]
+   18: 
+   19:         if tipo in ("carro","moto","caminhao","bicicleta","pedestre"):
+   20:             n=sum(1 for e in self.elementos if e["tipo"]==tipo)+1
+   21:             sig={"carro":"V","moto":"V","caminhao":"V","bicicleta":"B","pedestre":"P"}
+   22:             label=simpledialog.askstring(
+   23:                 "Identificação","Identificação (ex: V1 — FIORINO):",
+   24:                 initialvalue=f"{sig[tipo]}{n}",
+   25:                 parent=self.winfo_toplevel()) or f"{sig[tipo]}{n}"
+   26:         elif tipo=="texto":
+   27:             label = ""  # será preenchido pelo EditorTexto
+   28:         elif tipo=="sc":
+   29:             label="SC"
+   30: 
+   31:         el={"tipo":tipo,"x":x,"y":y,"label":label,"angulo":0}
+   32:         if modelo_chave: el["modelo"] = modelo_chave
+   33:         if modelo_larg:  el["larg"]   = modelo_larg
+   34:         if modelo_alt:   el["alt"]    = modelo_alt
+   35:         if modelo_cor:   el["cor"]    = modelo_cor
+   36: 
+   37:         self._salvar_historico()
+   38:         self.elementos.append(el)
+   39:         self.sel_idx=len(self.elementos)-1
+   40: 
+   41:         self._atualizar_camadas()
+   42:         self._redesenhar()
+   43: 
+   44:         # Abre automaticamente o diálogo de ajuste
+   45:         if tipo in ("carro","moto","caminhao","bicicleta","pedestre","sc"):
+   46:             dlg=DialogoRedimensionar(self.winfo_toplevel(),el,self._redesenhar)
+   47:             self.winfo_toplevel().wait_window(dlg)
+   48:             self._atualizar_camadas()
+   49:             self._redesenhar()
+   50:         elif tipo == "texto":
+   51:             # Abre editor de texto inline
+   52:             self._abrir_editor_texto(el)
+   53: 
+   54:     # ──────────────────────────────────────────
+   55:     #  MODO CRIAÇÃO DE VIA
+   56:     # ──────────────────────────────────────────
+
+============================================================
+3. FERRAMENTAS — nomes Veiculo
+============================================================
+  FERRAMENTAS = [
+          ("sel",       "↖",  "Selecionar / mover"),
+          ("r1",        "R1", "Traçar eixo R1"),
+          ("r2",        "R2", "Traçar eixo R2"),
+          ("carro",     "🚗", "Veículo — carro"),
+          ("moto",      "🏍", "Veículo — moto"),
+          ("caminhao",  "🚚", "Veículo — caminhão"),
+          ("bicicleta", "🚲", "Veículo — bicicleta"),
+          ("pedestre",  "🚶", "Pedestre"),
+          ("sc",        "✕",  "Sítio de colisão (SC)"),
+          ("cota",      "↔",  "Cota / medida"),
+          ("calibrar",  "📐", "Calibrar escala (drone)"),
+          ("texto",     "T",  "Texto / anotação"),
+          ("apagar",    "⌫",  "Apagar elemento"),
+      ]
+
+============================================================
+4. Como _criar_btn_ferr monta o label (split)
+============================================================
+  L860: lbl_txt = tk.Label(f, text=dica.split("—")[0].split("/")[0].strip(),

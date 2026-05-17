@@ -1,0 +1,53 @@
+============================================================
+Desenho de R1/R2 (eixos) — trecho exato
+============================================================
+  (inicia L2350)
+    0: if tipo in ("r1","r2"):
+    1:             cor_eixo  = COR_R1 if tipo=="r1" else COR_R2
+    2:             nome_eixo = "R1"   if tipo=="r1" else "R2"
+    3:             esp = el.get("espessura", 2)
+    4:             if "x2" in el:
+    5:                 ax1,ay1 = self._mt(el["x"],  el["y"])
+    6:                 ax2,ay2 = self._mt(el["x2"], el["y2"])
+    7:             else:
+    8:                 ax1 = self._tx(el["x"]); ay1 = self._ty(el["y"])
+    9:                 ax2 = ax1;               ay2 = self._ty(el.get("y2", el["y"]+100))
+   10:             # Linha contínua
+   11:             c.create_line(ax1,ay1,ax2,ay2, fill=cor_eixo,
+   12:                           width=max(1,int(esp*self.zoom)))
+   13:             # Rótulo perpendicular à linha, afastado para não ser cortado
+   14:             dx = ax2 - ax1; dy = ay2 - ay1
+   15:             length = math.hypot(dx, dy)
+   16:             if length > 0:
+   17:                 # Vetor perpendicular normalizado
+   18:                 px = -dy / length; py = dx / length
+   19:                 # Ponto a 60% do comprimento, deslocado 14px para o lado
+   20:                 mx = ax1 + dx*0.15 + px*14
+   21:                 my = ay1 + dy*0.15 + py*14
+   22:                 # Ângulo do texto alinhado com a linha
+   23:                 ang_deg = math.degrees(math.atan2(dy, dx))
+   24:                 # Mantém texto legível (sem ficar de cabeça para baixo)
+   25:                 if ang_deg > 90 or ang_deg < -90:
+   26:                     ang_deg += 180
+   27:                 # Fundo pequeno para legibilidade
+   28:                 c.create_text(mx, my, text=nome_eixo,
+   29:                               fill=cor_eixo,
+
+============================================================
+Desenho de COTA — trecho exato
+============================================================
+  (inicia L2388)
+    0: tipo=="cota":
+    1:             tx2,ty2=self._mt(el["x2"],el["y2"])
+    2:             c.create_line(tx,ty,tx2,ty2,fill=COR_COTA,width=1,
+    3:                           arrow="both",arrowshape=(6,8,3))
+    4:             c.create_text((tx+tx2)/2,(ty+ty2)/2-8,text=label,
+    5:                           fill=COR_COTA,font=FONTE_MONO,anchor="s"); return
+    6: 
+
+============================================================
+COR_R1/COR_R2/COR_COTA importados no editor?
+============================================================
+  L28: COR_R1, COR_R2, COR_COTA,
+  L28: COR_R2, COR_COTA,
+  L28: COR_COTA,

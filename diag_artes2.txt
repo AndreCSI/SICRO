@@ -1,0 +1,301 @@
+============================================================
+ESTADO ATUAL — SISTEMA DE VEICULOS (pre-SVG)
+============================================================
+
+assets/:
+  card_drone.png (1121719b)
+  card_manual.png (815797b)
+  card_modelo.png (1133773b)
+  splash_bg.png (1671872b)
+  veiculos/
+
+assets/veiculos/:
+  hatch.png (977199b)
+  sedan.png (998658b)
+  suv.png (854417b)
+
+desenho/:
+  __init__.py (0b)
+  __pycache__/
+  veiculos_arte.py (8539b)
+  via_elementos.py (6404b)
+
+popups/:
+  __init__.py (0b)
+  __pycache__/
+  popup_modelo_via.py (7147b)
+  popup_placas.py (4189b)
+  popup_veiculo.py (5184b)
+
+============================================================
+FERRAMENTAS (ordem atual dos botoes)
+============================================================
+  FERRAMENTAS = [
+          ("sel",       "↖",  "Selecionar / mover"),
+          ("r1",        "R1", "Traçar eixo R1"),
+          ("r2",        "R2", "Traçar eixo R2"),
+          ("carro",     "🚗", "Carro"),
+          ("moto",      "🏍", "Motocicleta"),
+          ("caminhao",  "🚚", "Caminhão"),
+          ("bicicleta", "🚲", "Bicicleta"),
+          ("pedestre",  "🚶", "Pedestre"),
+          ("sc",        "✕",  "Sítio de colisão (SC)"),
+          ("cota",      "↔",  "Cota / medida"),
+          ("calibrar",  "📐", "Calibrar escala (drone)"),
+          ("texto",     "T",  "Texto / anotação"),
+          ("apagar",    "⌫",  "Apagar elemento"),
+      ]
+
+============================================================
+MODELOS_VEICULOS (onde esta + conteudo)
+============================================================
+  [em popups/popup_veiculo.py]
+  MODELOS_VEICULOS = {
+      'carro': [
+          {'chave':'sedan',  'nome':'Sedan',       'desc':'4 portas',        'arte':arte_sedan,          'png':'sedan.png', 'larg':28,'alt':14,'cor':AZUL_CLARO},
+          {'chave':'suv',    'nome':'SUV / Picape', 'desc':'4x4, utilitario', 'arte':arte_suv,            'png':'suv.png',   'larg':30,'alt':16,'cor':'#3A8A3A'},
+          {'chave':'hatch',  'nome':'Hatchback',    'desc':'Compacto',        'arte':arte_hatch,          'png':'hatch.png', 'larg':24,'alt':13,'cor':'#A04040'},
+      ],
+      'moto': [
+          {'chave':'esportiva','nome':'Esportiva',      'desc':'Moto baixa',    'arte':arte_moto_esportiva,'larg':20,'alt':7,'cor':'#9B3030'},
+          {'chave':'urbana',   'nome':'Urbana / Naked', 'desc':'Guidad alto',   'arte':arte_moto_urbana,  'larg':18,'alt':8,'cor':'#9B6BDF'},
+          {'chave':'carga',    'nome':'Motoboy / Carga','desc':'Com bau',       'arte':arte_moto_carga,   'larg':22,'alt':9,'cor':'#3A6A3A'},
+      ],
+      'caminhao': [
+          {'chave':'leve',   'nome':'Caminhao leve', 'desc':'VUC / 3/4',           'arte':arte_caminhao_leve,   'larg':36,'alt':16,'cor':COR_PERIGO},
+          {'chave':'truck',  'nome':'Caminhao truck','desc':'Toco / truck',         'arte':arte_caminhao_truck,  'larg':48,'alt':18,'cor':'#C06020'},
+          {'chave':'carreta','nome':'Carreta',        'desc':'Bitrem / semirreboque','arte':arte_caminhao_carreta,'larg':56,'alt':17,'cor':'#606060'},
+      ],
+  }
+
+============================================================
+_inserir (fluxo de criacao de veiculo)
+============================================================
+    0:     def _inserir(self,tipo,x,y):
+    1:         label=""
+    2:         modelo_chave = None
+    3:         modelo_larg  = None
+    4:         modelo_alt   = None
+    5:         modelo_cor   = None
+    6: 
+    7:         # ── Popup de seleção de modelo para veículos ──
+    8:         if tipo in ("carro", "moto", "caminhao"):
+    9:             popup = PopupModeloVeiculo(self.winfo_toplevel(), tipo)
+   10:             self.winfo_toplevel().wait_window(popup)
+   11:             if popup.resultado is None:
+   12:                 return   # cancelou / fechou sem escolher
+   13:             m = popup.resultado
+   14:             modelo_chave = m["chave"]
+   15:             modelo_larg  = m["larg"]
+   16:             modelo_alt   = m["alt"]
+   17:             modelo_cor   = m["cor"]
+   18: 
+   19:         if tipo in ("carro","moto","caminhao","bicicleta","pedestre"):
+   20:             n=sum(1 for e in self.elementos if e["tipo"]==tipo)+1
+   21:             sig={"carro":"V","moto":"V","caminhao":"V","bicicleta":"B","pedestre":"P"}
+   22:             # Auto-gera o rotulo — editavel depois no painel Propriedades
+   23:             label=f"{sig[tipo]}{n}"
+   24:         elif tipo=="texto":
+   25:             label = ""  # será preenchido pelo EditorTexto
+   26:         elif tipo=="sc":
+   27:             label="SC"
+   28: 
+   29:         el={"tipo":tipo,"x":x,"y":y,"label":label,"angulo":0}
+   30:         if modelo_chave: el["modelo"] = modelo_chave
+   31:         if modelo_larg:  el["larg"]   = modelo_larg
+   32:         if modelo_alt:   el["alt"]    = modelo_alt
+   33:         if modelo_cor:   el["cor"]    = modelo_cor
+   34: 
+   35:         self._salvar_historico()
+   36:         self.elementos.append(el)
+   37:         self.sel_idx=len(self.elementos)-1
+   38: 
+   39:         self._atualizar_camadas()
+   40:         self._redesenhar()
+   41: 
+   42:         # Veiculos: ajuste direto pelos handles/painel (sem dialogo)
+   43:         if tipo == "texto":
+   44:             # Abre editor de texto inline
+   45:             self._abrir_editor_texto(el)
+   46: 
+   47:     # ──────────────────────────────────────────
+   48:     #  MODO CRIAÇÃO DE VIA
+   49:     # ──────────────────────────────────────────
+
+============================================================
+_veiculo_arte (renderizacao atual)
+============================================================
+    0:     def _veiculo_arte(self, tx, ty, angulo, larg, alt, cor, label, arte_fn, png=None):
+    1:         """
+    2:         Desenha veículo com PNG (se disponível) ou arte vetorial.
+    3:         Rotação via PIL para PNG, via polígonos rotacionados para vetorial.
+    4:         """
+    5:         c = self.canvas
+    6:         sc = self.zoom
+    7:         desenhado = False
+    8: 
+    9:         # ── Tenta renderizar via PNG ──
+   10:         if PIL_OK and png:
+   11:             img_base = carregar_imagem_veiculo(png, cor)
+   12:             if img_base:
+   13:                 try:
+   14:                     # Redimensiona para tamanho atual no zoom
+   15:                     tw = max(4, int(larg * sc * 1.6))
+   16:                     th = max(4, int(alt  * sc * 2.8))
+   17:                     img_res = img_base.resize((tw, th), Image.LANCZOS)
+   18:                     # Rotaciona
+   19:                     ang = angulo % 360
+   20:                     if ang > 1:
+   21:                         img_res = img_res.rotate(-ang, expand=True,
+   22:                                                   resample=Image.BILINEAR)
+   23:                     tk_img = ImageTk.PhotoImage(img_res)
+   24:                     if not hasattr(self, "_tk_imgs"):
+   25:                         self._tk_imgs = []
+   26:                     self._tk_imgs.append(tk_img)
+   27:                     c.create_image(tx, ty, image=tk_img, anchor="center")
+   28:                     desenhado = True
+   29:                 except Exception as e:
+   30:                     print(f"[PNG render] {e}")
+   31: 
+   32:         # ── Fallback: arte vetorial ──
+   33:         if not desenhado:
+   34:             arte_fn(c, tx, ty, sc, cor)
+   35: 
+   36:         # ── Rótulo abaixo do veículo (rotacionado junto) ──
+   37:         if label:
+   38:             rad = math.radians(angulo)
+   39:             off = (alt * sc / 2 + 10)
+   40:             lx = tx + math.sin(rad) * off
+   41:             ly = ty + math.cos(rad) * off
+   42:             c.create_text(lx, ly, text=label,
+   43:                           fill=BRANCO, font=("Segoe UI", 8, "bold"))
+   44: 
+
+--- carregar_imagem_veiculo (def + assinatura) ---
+  [em ui/editor_croqui.py]
+    0: def carregar_imagem_veiculo(nome_arquivo, cor_hex):
+    1:     if not PIL_OK: return None
+    2:     chave = (nome_arquivo, cor_hex)
+    3:     if chave in _IMG_CACHE: return _IMG_CACHE[chave]
+    4:     try:
+    5:         import numpy as np
+    6:         from collections import deque
+    7:         from config import DIR_ASSETS
+    8:         caminho = DIR_ASSETS / nome_arquivo
+    9:         if not caminho.exists(): return None
+   10:         img = Image.open(caminho).convert('RGBA')
+   11:         arr = np.array(img)
+   12:         alpha = arr[:,:,3]
+   13:         brightness = arr[:,:,0].astype(int)+arr[:,:,1].astype(int)+arr[:,:,2].astype(int)
+   14:         if alpha.min()==255:
+   15:             gray=(brightness//3).clip(0,255).astype('uint8')
+   16:             visited=np.zeros(gray.shape,dtype=bool)
+   17:             mask=np.ones(gray.shape,dtype=bool)
+   18:             h_,w_=gray.shape; threshold=20
+   19:             starts=([(0,x) for x in range(0,w_,4)]+[(h_-1,x) for x in range(0,w_,4)]+
+   20:                     [(y,0) for y in range(0,h_,4)]+[(y,w_-1) for y in range(0,h_,4)])
+   21:             queue=deque()
+   22:             for sy,sx in starts:
+   23:                 if not visited[sy,sx] and gray[sy,sx]<threshold:
+   24:                     visited[sy,sx]=True; mask[sy,sx]=False; queue.append((sy,sx))
+   25:             while queue:
+   26:                 y,x=queue.popleft()
+   27:                 for dy,dx in [(-1,0),(1,0),(0,-1),(0,1)]:
+   28:                     ny,nx=y+dy,x+dx
+   29:                     if 0<=ny<h_ and 0<=nx<w_ and not visited[ny,nx] and gray[ny,nx]<threshold:
+
+============================================================
+import veiculos_arte no editor + TIPO_INFO
+============================================================
+  from desenho.veiculos_arte import (
+      arte_sedan, arte_suv, arte_hatch,
+      arte_moto_esportiva, arte_moto_urbana, arte_moto_carga,
+      arte_caminhao_leve, arte_caminhao_truck, arte_caminhao_carreta,
+      arte_bicicleta, arte_pedestre, escurecer,
+  )
+
+  TIPO_INFO (config.py):
+  TIPO_INFO = {
+      "carro":          ("🚗", "Carro"),
+      "moto":           ("🏍", "Moto"),
+      "caminhao":       ("🚚", "Caminhão"),
+      "bicicleta":      ("🚲", "Bicicleta"),
+      "pedestre":       ("🚶", "Pedestre"),
+      "sc":             ("✕",  "Sítio de colisão"),
+      "cota":           ("↔",  "Cota"),
+      "r1":             ("R1", "Eixo R1"),
+      "r2":             ("R2", "Eixo R2"),
+      "via_h":          ("══", "Via horizontal"),
+      "via_v":          ("║",  "Via vertical"),
+      "texto":          ("T",  "Texto"),
+      "_asfalto":       ("▬",  "Asfalto"),
+      "_calcada":       ("▭",  "Calçada"),
+      "_canteiro":      ("▬",  "Canteiro"),
+      "_faixa_h":       ("- -","Faixa H"),
+      "_faixa_v":       ("| |","Faixa V"),
+      "_rotatoria":     ("◎",  "Rotatória"),
+      "_asfalto_terra": ("▬",  "Estrada"),
+      # Tipos do editor de via
+      "v_asfalto":   ("▬",  "Asfalto"),
+      "v_calcada":   ("▭",  "Calçada"),
+      "v_faixa_am":  ("══", "Faixa amarela"),
+      "v_faixa_br":  ("---","Faixa branca"),
+      "v_faixa_ped": ("⊟",  "Faixa pedestre"),
+      "v_rotatoria": ("◎",  "Rotatória"),
+      "v_semaforo":  ("⬛", "Semáforo"),
+      "v_placa":     ("⬡",  "Placa"),
+      "v_arvore":    ("✿",  "Árvore"),
+      "v_poste":     ("⌂",  "Poste"),
+      "v_conflito":  ("⚠",  "Conflito"),
+  }
+
+============================================================
+_mostrar_props (campos atuais por tipo) - so estrutura
+============================================================
+  (159 linhas no metodo)
+    9:             if el.get("label"):      linhas.append(f"Rotulo: {el['label']}")
+   10:             if el.get("angulo") is not None and el["tipo"] != "_rotatoria":
+   12:             if el.get("larg"):       linhas.append(f"Largura: {el['larg']} px")
+   13:             if el.get("alt"):        linhas.append(f"Altura: {el['alt']} px")
+   18:             if el["tipo"] in tipos_redim:
+   39:         def _campo(label, valor_str, on_change):
+   48:             if label == "Rotacao":
+   72:         if el.get("label") is not None:
+   75:             _campo("Rotulo", str(el.get("label", "")), set_label)
+   87:             _campo(f"Pos X ({unidade})",
+   89:             _campo(f"Pos Y ({unidade})",
+   93:         if el.get("angulo") is not None and el["tipo"] != "_rotatoria":
+   96:             _campo("Rotacao", f"{el.get('angulo', 0):.1f}", set_ang)
+   99:         if el.get("larg") is not None:
+  101:                 el["larg"] = float(v) / fator
+  102:             _campo(f"Largura ({unidade})",
+  106:         if el.get("alt") is not None:
+  108:                 el["alt"] = float(v) / fator
+  109:             _campo(f"Altura ({unidade})",
+  112:         # Espessura — linhas R1/R2 e Cota
+  113:         if el["tipo"] in ("r1", "r2", "cota"):
+  117:             _campo("Espessura (px)",
+  121:         if el["tipo"] in ("r1", "r2", "cota") and not el.get("cor"):
+  122:             el["cor"] = {"r1": COR_R1, "r2": COR_R2,
+  126:         if el.get("cor"):
+  132:             cor_atual = el.get("cor", "#888888")
+  140:                                     el.get("cor", "#888888"))
+  142:                     el["cor"] = nova
+  154:         if el["tipo"] in tipos_redim:
+
+============================================================
+popup_veiculo.py (estrutura completa)
+============================================================
+  (106 linhas)
+  L38: class PopupModeloVeiculo
+  L39: def __init__
+  L69: def _card
+  L101: def _desenhar_preview
+
+============================================================
+config.py - paths de assets
+============================================================
+  L39: def resource_path(relative):
+  L49: DIR_CROQUIS = Path.home() / "SicroPCIAP" / "croquis"
+  L50: DIR_CROQUIS.mkdir(parents=True, exist_ok=True)
+  L52: DIR_ASSETS = resource_path("assets/veiculos")

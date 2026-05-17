@@ -1,0 +1,174 @@
+============================================================
+1. _veiculo_arte ATUAL (exato, para reescrever)
+============================================================
+  (inicia L2521)
+    0:     def _veiculo_arte(self, tx, ty, angulo, larg, alt, cor, label, arte_fn, png=None):
+    1:         """
+    2:         Desenha veículo com PNG (se disponível) ou arte vetorial.
+    3:         Rotação via PIL para PNG, via polígonos rotacionados para vetorial.
+    4:         """
+    5:         c = self.canvas
+    6:         sc = self.zoom
+    7:         desenhado = False
+    8: 
+    9:         # ── Tenta renderizar via PNG ──
+   10:         if PIL_OK and png:
+   11:             img_base = carregar_imagem_veiculo(png, cor)
+   12:             if img_base:
+   13:                 try:
+   14:                     # Redimensiona para tamanho atual no zoom
+   15:                     tw = max(4, int(larg * sc * 1.6))
+   16:                     th = max(4, int(alt  * sc * 2.8))
+   17:                     img_res = img_base.resize((tw, th), Image.LANCZOS)
+   18:                     # Rotaciona
+   19:                     ang = angulo % 360
+   20:                     if ang > 1:
+   21:                         img_res = img_res.rotate(-ang, expand=True,
+   22:                                                   resample=Image.BILINEAR)
+   23:                     tk_img = ImageTk.PhotoImage(img_res)
+   24:                     if not hasattr(self, "_tk_imgs"):
+   25:                         self._tk_imgs = []
+   26:                     self._tk_imgs.append(tk_img)
+   27:                     c.create_image(tx, ty, image=tk_img, anchor="center")
+   28:                     desenhado = True
+   29:                 except Exception as e:
+   30:                     print(f"[PNG render] {e}")
+   31: 
+   32:         # ── Fallback: arte vetorial ──
+   33:         if not desenhado:
+   34:             arte_fn(c, tx, ty, sc, cor)
+   35: 
+   36:         # ── Rótulo abaixo do veículo (rotacionado junto) ──
+   37:         if label:
+   38:             rad = math.radians(angulo)
+   39:             off = (alt * sc / 2 + 10)
+   40:             lx = tx + math.sin(rad) * off
+   41:             ly = ty + math.cos(rad) * off
+   42:             c.create_text(lx, ly, text=label,
+   43:                           fill=BRANCO, font=("Segoe UI", 8, "bold"))
+   44: 
+
+============================================================
+2. Onde _veiculo_arte e CHAMADO (contexto da chamada)
+============================================================
+--- chamada L2484 ---
+  
+              if modelo_chave and tipo in MODELOS_VEICULOS:
+                  for m in MODELOS_VEICULOS[tipo]:
+                      if m["chave"] == modelo_chave:
+                          arte_fn = m["arte"]
+                          png_file = m.get("png")
+                          break
+              if tipo == "bicicleta": arte_fn = _arte_bicicleta
+              if tipo == "pedestre":  arte_fn = _arte_pedestre
+  
+              if arte_fn:
+                  self._veiculo_arte(tx, ty, ang, larg, alt, cor, label, arte_fn, png=png_file)
+              else:
+                  self._veiculo(t
+
+============================================================
+3. Bloco que decide arte_fn/png (antes da chamada)
+============================================================
+  (inicia L2464)
+    0: if tipo in larg_padrao:
+    1:             larg = el.get("larg", larg_padrao[tipo])
+    2:             alt  = el.get("alt",  alt_padrao[tipo])
+    3:             ang  = el.get("angulo", 0)
+    4:             cor  = el.get("cor", cores_padrao[tipo])
+    5: 
+    6:             # Busca função de arte e PNG do modelo
+    7:             arte_fn = None
+    8:             png_file = None
+    9:             modelo_chave = el.get("modelo")
+   10:             if modelo_chave and tipo in MODELOS_VEICULOS:
+   11:                 for m in MODELOS_VEICULOS[tipo]:
+   12:                     if m["chave"] == modelo_chave:
+   13:                         arte_fn = m["arte"]
+   14:                         png_file = m.get("png")
+   15:                         break
+   16:             if tipo == "bicicleta": arte_fn = _arte_bicicleta
+   17:             if tipo == "pedestre":  arte_fn = _arte_pedestre
+   18: 
+   19:             if arte_fn:
+   20:                 self._veiculo_arte(tx, ty, ang, larg, alt, cor, label, arte_fn, png=png_file)
+
+============================================================
+4. _inserir — como guarda modelo/cor (estado atual)
+============================================================
+    0:     def _inserir(self,tipo,x,y):
+    1:         label=""
+    2:         modelo_chave = None
+    3:         modelo_larg  = None
+    4:         modelo_alt   = None
+    5:         modelo_cor   = None
+    6: 
+    7:         # ── Popup de seleção de modelo para veículos ──
+    8:         if tipo in ("carro", "moto", "caminhao"):
+    9:             popup = PopupModeloVeiculo(self.winfo_toplevel(), tipo)
+   10:             self.winfo_toplevel().wait_window(popup)
+   11:             if popup.resultado is None:
+   12:                 return   # cancelou / fechou sem escolher
+   13:             m = popup.resultado
+   14:             modelo_chave = m["chave"]
+   15:             modelo_larg  = m["larg"]
+   16:             modelo_alt   = m["alt"]
+   17:             modelo_cor   = m["cor"]
+   18: 
+   19:         if tipo in ("carro","moto","caminhao","bicicleta","pedestre"):
+   20:             n=sum(1 for e in self.elementos if e["tipo"]==tipo)+1
+   21:             sig={"carro":"V","moto":"V","caminhao":"V","bicicleta":"B","pedestre":"P"}
+   22:             # Auto-gera o rotulo — editavel depois no painel Propriedades
+   23:             label=f"{sig[tipo]}{n}"
+   24:         elif tipo=="texto":
+   25:             label = ""  # será preenchido pelo EditorTexto
+   26:         elif tipo=="sc":
+   27:             label="SC"
+   28: 
+   29:         el={"tipo":tipo,"x":x,"y":y,"label":label,"angulo":0}
+   30:         if modelo_chave: el["modelo"] = modelo_chave
+   31:         if modelo_larg:  el["larg"]   = modelo_larg
+   32:         if modelo_alt:   el["alt"]    = modelo_alt
+   33:         if modelo_cor:   el["cor"]    = modelo_cor
+   34: 
+   35:         self._salvar_historico()
+   36:         self.elementos.append(el)
+   37:         self.sel_idx=len(self.elementos)-1
+   38: 
+   39:         self._atualizar_camadas()
+   40:         self._redesenhar()
+   41: 
+   42:         # Veiculos: ajuste direto pelos handles/painel (sem dialogo)
+   43:         if tipo == "texto":
+   44:             # Abre editor de texto inline
+   45:             self._abrir_editor_texto(el)
+   46: 
+   47:     # ──────────────────────────────────────────
+   48:     #  MODO CRIAÇÃO DE VIA
+   49:     # ──────────────────────────────────────────
+
+============================================================
+5. Imports no topo do editor (render_svg ja importado?)
+============================================================
+  import tkinter as tk
+  from tkinter import ttk, filedialog, messagebox, simpledialog
+  import json, math, datetime
+  import sys
+  from pathlib import Path
+  from tema import (
+  from config import (
+  from desenho.veiculos_arte import (
+  from popups.popup_veiculo import PopupModeloVeiculo, MODELOS_VEICULOS
+  from popups.popup_placas import PopupPlacas
+  from popups.popup_modelo_via import PopupModeloVia
+  from widgets.editor_texto import EditorTextoInline
+  ...
+  'render_svg' aparece: False
+  'catalogo_veiculos' aparece: False
+
+============================================================
+6. MODELOS_VEICULOS — chaves de cada modelo (tem 'svg'?)
+============================================================
+  Exemplo de item atual:
+  {'chave':'sedan',  'nome':'Sedan',       'desc':'4 portas',        'arte':arte_sedan,          'png':'sedan.png', 'larg':28,'alt':14,'cor':AZUL_CLARO}
+  campo 'svg' ja existe nos modelos: False

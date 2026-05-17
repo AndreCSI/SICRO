@@ -1,0 +1,135 @@
+============================================================
+1. _salvar — o que o .sicro guarda hoje
+============================================================
+    0:     def _salvar(self):
+    1:         dados={**self.dados_caso,"modo":self.modo,"k":self.k,
+    2:                "u_k":self.u_k,"calibrado":self.calibrado,
+    3:                "elementos":self.elementos}
+    4:         bo=self.dados_caso.get("bo","").replace("/","-")
+    5:         nome=f"BO_{bo}_{datetime.date.today()}.sicro"
+    6:         cam=DIR_CROQUIS/nome
+    7:         with open(cam,"w",encoding="utf-8") as f:
+    8:             json.dump(dados,f,ensure_ascii=False,indent=2)
+    9:         messagebox.showinfo("Salvo",f"Croqui salvo:\n{cam}")
+   10: 
+
+============================================================
+2. _exportar_pdf — geracao atual do PDF
+============================================================
+    0:     def _exportar_pdf(self):
+    1:         try:
+    2:             from reportlab.pdfgen import canvas as rl
+    3:             from reportlab.lib.pagesizes import A4,landscape
+    4:             from reportlab.lib.units import mm
+    5:         except ImportError:
+    6:             messagebox.showerror("ReportLab","pip install reportlab"); return
+    7:         path=filedialog.asksaveasfilename(
+    8:             defaultextension=".pdf",filetypes=[("PDF","*.pdf")],
+    9:             initialfile=f"Croqui_BO_{self.dados_caso.get('bo','').replace('/','_')}.pdf")
+   10:         if not path: return
+   11:         W_pt,H_pt=landscape(A4)
+   12:         cv=rl.Canvas(path,pagesize=(W_pt,H_pt))
+   13:         cv.setFont("Helvetica-Bold",14)
+   14:         cv.drawCentredString(W_pt/2,H_pt-20*mm,"SICRO PCI/AP — CROQUI DE AMARRAÇÃO")
+   15:         cv.setFont("Helvetica",10)
+   16:         cv.drawCentredString(W_pt/2,H_pt-27*mm,
+   17:             f"BO Nº {self.dados_caso.get('bo','')}  ·  "
+   18:             f"{self.dados_caso.get('local','')}  ·  "
+   19:             f"{self.dados_caso.get('data','')}")
+   20:         if PIL_OK:
+   21:             try:
+   22:                 from PIL import ImageGrab
+   23:                 x0=self.canvas.winfo_rootx(); y0=self.canvas.winfo_rooty()
+   24:                 x1=x0+self.canvas.winfo_width(); y1=y0+self.canvas.winfo_height()
+   25:                 img=ImageGrab.grab(bbox=(x0,y0,x1,y1))
+   26:                 tmp=Path.home()/"SicroPCIAP"/"_tmp.png"
+   27:                 img.save(tmp)
+   28:                 cv.drawImage(str(tmp),15*mm,15*mm,
+   29:                              width=W_pt-30*mm,height=H_pt-50*mm,
+   30:                              preserveAspectRatio=True)
+   31:                 tmp.unlink(missing_ok=True)
+   32:             except Exception: pass
+   33:         cv.setFont("Helvetica",8)
+   34:         cv.drawString(15*mm,8*mm,
+   35:             f"Perito: {self.dados_caso.get('perito','')}  ·  "
+   36:             f"SICRO PCI/AP  ·  {datetime.date.today()}")
+   37:         if self.calibrado and self.k:
+   38:             cv.drawRightString(W_pt-15*mm,8*mm,
+   39:                 f"k={self.k:.5f} m/px  |  ±{self.u_k*1000:.3f}mm/px")
+   40:         cv.save()
+   41:         messagebox.showinfo("PDF exportado",f"Salvo:\n{path}")
+   42: 
+
+============================================================
+3. dados_caso — estrutura (o que tem em metadata)
+============================================================
+  L673: self.dados_caso   = dados_caso
+  L745: dados_caso.get("bo", "—")
+  L2574: dados_caso[campo] = novo.strip()
+  L674: self.modo         = modo
+  L689: self.k          = None
+  L688: self.calibrado  = False
+  L678: self.elementos  = list(elementos_iniciais or [])
+  L671: img_drone=None, elementos_iniciais=None):
+  L691: self.u_k        = None
+
+============================================================
+4. Onde guarda elementos no JSON do .sicro
+============================================================
+  L2581: ...self): |         dados={**self.dados_caso,"modo":self.modo,"k":self.k, |                "u_k":self.u_k,"calibrado":self.calibrado, |              ...
+  L2581: ...dos={**self.dados_caso,"modo":self.modo,"k":self.k, |                "u_k":self.u_k,"calibrado":self.calibrado, |                "elementos":sel...
+  L2582: ...o":self.modo,"k":self.k, |                "u_k":self.u_k,"calibrado":self.calibrado, |                "elementos":self.elementos} |         bo=sel...
+  L2582: ...":self.k, |                "u_k":self.u_k,"calibrado":self.calibrado, |                "elementos":self.elementos} |         bo=self.dados_caso.ge...
+  L2583: ...librado":self.calibrado, |                "elementos":self.elementos} |         bo=self.dados_caso.get("bo","").replace("/","-") |         nome=f"...
+  L2588: ..."w",encoding="utf-8") as f: |             json.dump(dados,f,ensure_ascii=False,indent=2) |         messagebox.showinfo("Salvo",f"Croqui salvo:\n...
+
+============================================================
+5. arquivo/salvar.py
+============================================================
+  45 linhas
+    1: import json
+    2: import datetime
+    3: import sys
+    4: from pathlib import Path
+    5: _raiz = Path(__file__).parent.parent
+    6: if str(_raiz) not in sys.path:
+    7:     sys.path.insert(0, str(_raiz))
+    8: from config import DIR_CROQUIS
+    9: 
+   10: 
+   11: def salvar_croqui(dados_caso, modo, elementos, calibrado, k, u_k):
+   12:     dados = {
+   13:         **dados_caso,
+   14:         'modo':      modo,
+   15:         'k':         k,
+   16:         'u_k':       u_k,
+   17:         'calibrado': calibrado,
+   18:         'elementos': elementos,
+   19:     }
+   20:     bo   = dados_caso.get('bo', '').replace('/', '-')
+   21:     nome = f"BO_{bo}_{datetime.date.today()}.sicro"
+   22:     cam  = DIR_CROQUIS / nome
+   23:     with open(cam, 'w', encoding='utf-8') as f:
+   24:         json.dump(dados, f, ensure_ascii=False, indent=2)
+   25:     return cam
+   26: 
+   27: 
+   28: def carregar_croqui(caminho):
+   29:     with open(caminho, encoding='utf-8') as f:
+   30:         dados = json.load(f)
+   31:     caso = {k: dados[k] for k in
+   32:             ('bo', 'requisicao', 'local', 'municipio', 'perito', 'data')
+   33:             if k in dados}
+   34:     return {
+   35:         'caso':       caso,
+   36:         'modo':       dados.get('modo', 'zero'),
+   37:         'elementos':  dados.get('elementos', []),
+   38:         'calibrado':  dados.get('calibrado', False),
+   39:         'k':          dados.get('k'),
+   40:         'u_k':        dados.get('u_k'),
+   41:     }
+   42: 
+   43: 
+   44: def listar_croquis():
+   45:     return sorted(DIR_CROQUIS.glob('*.sicro'), reverse=True)
+   46: 

@@ -1,0 +1,104 @@
+============================================================
+main.py _novo COMPLETO (fluxo da foto drone)
+============================================================
+    0:     def _novo(self, modo):
+    1:         # modo: "zero" (manual), "drone", "modelo"
+    2:         usar_modelo = (modo == "modelo")
+    3:         modo_editor = "drone" if modo == "drone" else "zero"
+    4: 
+    5:         dlg = DialogoDadosCaso(self, modo=modo_editor)
+    6:         self.wait_window(dlg)
+    7:         if not dlg.resultado:
+    8:             return
+    9: 
+   10:         img_drone = None
+   11:         if modo == "drone":
+   12:             if not PIL_OK:
+   13:                 messagebox.showerror("Pillow", "pip install Pillow")
+   14:                 return
+   15:             cam = filedialog.askopenfilename(
+   16:                 title="Foto do drone (ja retificada)",
+   17:                 filetypes=[("Imagens", "*.jpg *.jpeg *.png *.tif")])
+   18:             if not cam:
+   19:                 return
+   20:             img_drone = Image.open(cam)
+   21: 
+   22:         els = []
+   23:         if usar_modelo:
+   24:             # Vai DIRETO para a grade de modelos (sem pergunta redundante)
+   25:             from popups.popup_modelo_via import GridModelos
+   26:             grid = GridModelos(self)
+   27:             self.wait_window(grid)
+   28:             if not grid.resultado:
+   29:                 return
+   30:             icone = grid.resultado.get("icone", "branco")
+   31:             if icone != "branco":
+   32:                 W = max(self.winfo_width(), 800)
+   33:                 H = max(self.winfo_height(), 600)
+   34:                 els = gerar_elementos_modelo(icone, W, H)
+   35: 
+   36:         editor = EditorCroqui(self, dlg.resultado, modo=modo_editor,
+   37:                               img_drone=img_drone, elementos_iniciais=els)
+   38:         self._trocar(editor)
+   39: 
+
+--- imports do main.py (PIL, Image, filedialog) ---
+    7: import tkinter as tk
+    8: from tkinter import ttk, filedialog, messagebox
+    9: import json, sys
+   10: from pathlib import Path
+   18:     from PIL import Image
+   19:     PIL_OK = True
+   21:     PIL_OK = False
+   24: from config import (
+   28: from ui.splash       import SplashScreen
+   29: from ui.tela_inicial import TelaInicial
+   30: from ui.dialogo_caso import DialogoDadosCaso
+   31: from ui.editor_croqui import EditorCroqui
+   32: from popups.popup_modelo_via import PopupModeloVia
+   39:         from tema import (
+
+--- classes Toplevel existentes no main.py (padrao de janela) ---
+  L35: class TitleBar
+  L148: class AppSicro
+
+--- TitleBar / overrideredirect no main.py (padrao visual) ---
+  L35: class TitleBar:
+  L39: from tema import (
+  L40: FUNDO_PAINEL, DOURADO, TEXTO_PRIMARIO,
+  L40: DOURADO, TEXTO_PRIMARIO,
+  L41: FUNDO_HOVER
+  L47: FUNDO_PAINEL, height=32)
+  L52: DOURADO, height=4).pack(fill="x", side="top")
+  L55: DOURADO, height=4).pack(fill="x")
+  L56: FUNDO_PAINEL, height=32)
+  L61: FUNDO_PAINEL)
+  L64: FUNDO_PAINEL, fg=TEXTO_PRIMARIO).pack(side="left")
+  L67: FUNDO_PAINEL, fg=TEXTO_TERCIARIO).pack(side="left")
+  L70: FUNDO_PAINEL)
+  L76: FUNDO_PAINEL, fg=TEXTO_TERCIARIO).pack()
+  L79: FUNDO_PAINEL)
+  L85: FUNDO_PAINEL, fg=fg,
+  L95: FUNDO_HOVER)
+  L96: FUNDO_HOVER)
+  L115: overrideredirect — usa withdraw
+  L117: overrideredirect(False)
+  L124: overrideredirect(True)
+  L142: overrideredirect(True))
+  L164: overrideredirect(True)
+
+--- config.py exporta tema? ---
+  config L3: from tema import (
+  config L4: FUNDO_BASE, FUNDO_PAINEL, FUNDO_CARD, FUNDO_HOVER,
+  config L5: DOURADO, DOURADO_CLARO, AZUL_BORDA, AZUL_MEDIO, AZUL_CLARO,
+  config L5: DOURADO_CLARO, AZUL_BORDA, AZUL_MEDIO, AZUL_CLARO,
+  config L6: TEXTO_PRIMARIO, TEXTO_SECUNDARIO, TEXTO_TERCIARIO,
+  config L10: TEXTO_PRIMARIO
+  config L13: FUNDO_BASE
+  config L14: DOURADO
+  config L15: FUNDO_BASE
+  config L19: TEXTO_PRIMARIO
+
+--- tema.py existe? quais nomes? ---
+  71 constantes: FUNDO_BASE, FUNDO_PAINEL, FUNDO_CARD, FUNDO_HOVER, FUNDO_ATIVO, FUNDO_ELEVADO, DOURADO, DOURADO_CLARO, DOURADO_ESCURO, AMARELO_ALERTA, AZUL_BORDA, AZUL_MEDIO, AZUL_CLARO, AZUL_GLOW, TEXTO_PRIMARIO, TEXTO_SECUNDARIO, TEXTO_TERCIARIO, TEXTO_INVERTIDO, COR_SUCESSO, COR_PERIGO, COR_AVISO, COR_INFO, COR_COTA, AZUL_ROYAL, AZUL_ESCURO, BRANCO, CINZA_CLARO, CINZA_MEDIO, CINZA_ESCURO, PRETO_SOFT, AMARELO, COR_FUNDO, COR_PAINEL, COR_CARD, COR_BORDA, COR_TEXTO, COR_TEXTO_SEC, FAMILIA, TAM_DISPLAY, TAM_BODY
+  Fontes: FONTE_DISPLAY, FONTE_H1, FONTE_H2, FONTE_H3, FONTE_BODY, FONTE_BODY_BOLD, FONTE_SMALL, FONTE_SMALL_BOLD, FONTE_MICRO, FONTE_MONO, FONTE_SUB, FONTE_NORMAL, FONTE_PEQ

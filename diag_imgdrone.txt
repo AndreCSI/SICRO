@@ -1,0 +1,124 @@
+============================================================
+img_drone — todas as referencias
+============================================================
+  L671: ...master, dados_caso, modo="zero", |                  img_drone=None, elementos_iniciais=None): |         super().__init__(master, bg=COR_FUNDO) |         self.dados_ca...
+  L675: ...aso |         self.modo         = modo |         self.img_drone    = img_drone |         self.img_drone_tk = None |  |         self.elementos  = list(elementos_iniciais o...
+  L675: ...f.modo         = modo |         self.img_drone    = img_drone |         self.img_drone_tk = None |  |         self.elementos  = list(elementos_iniciais or []) |         s...
+  L676: ...       self.img_drone    = img_drone |         self.img_drone_tk = None |  |         self.elementos  = list(elementos_iniciais or []) |         self._historico = [] |    ...
+  L2057: ...() |         if W<2 or H<2: return |  |         if self.img_drone and PIL_OK: |             nw=int(self.img_drone.width*self.zoom) |             nh=int(self.img_drone.hei...
+  L2058: ...elf.img_drone and PIL_OK: |             nw=int(self.img_drone.width*self.zoom) |             nh=int(self.img_drone.height*self.zoom) |             if nw>0 and nh>0: |  ...
+  L2059: ...mg_drone.width*self.zoom) |             nh=int(self.img_drone.height*self.zoom) |             if nw>0 and nh>0: |                 img_r=self.img_drone.resize((nw,nh),...
+  L2061: ...     if nw>0 and nh>0: |                 img_r=self.img_drone.resize((nw,nh),Image.LANCZOS) |                 self.img_drone_tk=ImageTk.PhotoImage(img_r) |           ...
+  L2062: ...esize((nw,nh),Image.LANCZOS) |                 self.img_drone_tk=ImageTk.PhotoImage(img_r) |                 c.create_image(self.pan_x,self.pan_y,anchor="nw",image=...
+  L2063: ...mage(self.pan_x,self.pan_y,anchor="nw",image=self.img_drone_tk) |         else: |             passo=max(1,int(50*self.zoom)) |             ox=int(self.pan_x)%passo; o...
+  L2090: ...           # Passada 1: grade |             if self.img_drone and PIL_OK: |                 nw=int(self.img_drone.width*self.zoom) |                 nh=int(self.img_d...
+  L2091: ...img_drone and PIL_OK: |                 nw=int(self.img_drone.width*self.zoom) |                 nh=int(self.img_drone.height*self.zoom) |                 if nw>0 and...
+  L2092: ...rone.width*self.zoom) |                 nh=int(self.img_drone.height*self.zoom) |                 if nw>0 and nh>0: |                     img_r=self.img_drone.resize(...
+  L2094: ... if nw>0 and nh>0: |                     img_r=self.img_drone.resize((nw,nh),Image.LANCZOS) |                     self.img_drone_tk=ImageTk.PhotoImage(img_r) |       ...
+  L2095: ...e((nw,nh),Image.LANCZOS) |                     self.img_drone_tk=ImageTk.PhotoImage(img_r) |                     c.create_image(self.pan_x,self.pan_y,anchor="nw",im...
+  L2096: ...mage(self.pan_x,self.pan_y,anchor="nw",image=self.img_drone_tk) |             else: |                 passo=max(1,int(50*self.zoom)) |                 ox=int(self.pan...
+
+--- __init__ do EditorCroqui (assinatura + onde guarda img_drone) ---
+    0:     def __init__(self, parent, elemento, redesenhar_cb):
+    1:         super().__init__(parent)
+    2:         self.title("Ajustar elemento")
+    3:         self.configure(bg=COR_FUNDO)
+    4:         self.resizable(False, False)
+    5:         self.grab_set()
+    6:         self.el = elemento
+    7:         self.cb = redesenhar_cb
+    8: 
+    9:         w, h = 440, 380
+   10:         sw, sh = self.winfo_screenwidth(), self.winfo_screenheight()
+   11:         self.geometry(f"{w}x{h}+{(sw-w)//2}+{(sh-h)//2}")
+   12: 
+   13:         tk.Frame(self, bg=AMARELO, height=4).pack(fill="x")
+   14:         corpo = tk.Frame(self, bg=COR_FUNDO)
+   15:         corpo.pack(fill="both", expand=True, padx=20, pady=14)
+   16: 
+   17:         icone, nome = TIPO_INFO.get(elemento["tipo"], ("?", elemento["tipo"]))
+   18:         tk.Label(corpo, text=f"{icone}  Ajustar: {nome}",
+   19:                  font=FONTE_SUB, bg=COR_FUNDO, fg=AMARELO).pack(anchor="w", pady=(0,8))
+   20: 
+   21:         tipo = elemento["tipo"]
+   22:         self.vars = {}
+   23: 
+   24:         # ── Campo de rótulo (sempre visível quando elemento tem label) ──
+   25:         if "label" in elemento:
+   26:             row_lbl = tk.Frame(corpo, bg=COR_FUNDO)
+   27:             row_lbl.pack(fill="x", pady=4)
+   28:             tk.Label(row_lbl, text="Identificação", font=FONTE_PEQ,
+   29:                      width=18, anchor="w",
+   30:                      bg=COR_FUNDO, fg=COR_TEXTO_SEC).pack(side="left")
+   31:             self._entry_label = tk.Entry(row_lbl, font=FONTE_NORMAL,
+   32:                                          bg=COR_CARD, fg=BRANCO,
+   33:                                          insertbackground=BRANCO,
+   34:                                          relief="flat", bd=4)
+   35:             self._entry_label.insert(0, elemento.get("label", ""))
+   36:             self._entry_label.pack(side="left", fill="x", expand=True)
+   37:             self._entry_label.bind("<KeyRelease>", self._ao_digitar_label)
+   38:         else:
+   39:             self._entry_label = None
+   40: 
+   41:         # ── Sliders ──
+   42:         tem_escala    = tipo in ("carro","moto","caminhao","bicicleta","pedestre")
+   43:         tem_angulo    = tipo in ("carro","moto","caminhao","bicicleta","pedestre","sc")
+   44:         tem_espessura = tipo in ("r1","r2")
+   45:         tem_tamanho   = tipo == "sc"
+   46: 
+   47:         if tem_escala:
+   48:             self._slider(corpo, "Largura  (px)", "larg",
+   49:                          elemento.get("larg", self._larg_padrao(tipo)), 5, 120)
+   50:             self._slider(corpo, "Altura    (px)", "alt",
+   51:                          elemento.get("alt",  self._alt_padrao(tipo)), 3, 60)
+   52: 
+   53:         if tem_angulo:
+   54:             self._slider(corpo, "Ângulo   (°)", "angulo",
+   55:                          elemento.get("angulo", 0), 0, 359)
+   56: 
+   57:         if tem_espessura:
+   58:             self._slider(corpo, "Espessura da linha (px)", "espessura",
+   59:                          elemento.get("espessura", 2), 1, 16)
+
+--- _salvar atual (exato) ---
+    0:     def _salvar(self):
+    1:         dados={**self.dados_caso,"modo":self.modo,"k":self.k,
+    2:                "u_k":self.u_k,"calibrado":self.calibrado,
+    3:                "elementos":self.elementos}
+    4:         bo=self.dados_caso.get("bo","").replace("/","-")
+    5:         nome=f"BO_{bo}_{datetime.date.today()}.sicro"
+    6:         cam=DIR_CROQUIS/nome
+    7:         with open(cam,"w",encoding="utf-8") as f:
+    8:             json.dump(dados,f,ensure_ascii=False,indent=2)
+    9:         messagebox.showinfo("Salvo",f"Croqui salvo:\n{cam}")
+   10: 
+
+--- main.py _abrir (como carrega) ---
+    0:     def _abrir(self, caminho):
+    1:         try:
+    2:             with open(caminho, encoding="utf-8") as f:
+    3:                 dados = json.load(f)
+    4:         except Exception as e:
+    5:             messagebox.showerror("Erro", str(e))
+    6:             return
+    7:         caso = {k: dados[k] for k in
+    8:                 ("bo", "requisicao", "local", "municipio", "perito", "data")
+    9:                 if k in dados}
+   10:         editor = EditorCroqui(self, caso,
+   11:                               modo=dados.get("modo", "zero"),
+   12:                               elementos_iniciais=dados.get("elementos", []))
+   13:         editor.calibrado = dados.get("calibrado", False)
+   14:         editor.k   = dados.get("k")
+   15:         editor.u_k = dados.get("u_k")
+   16:         if editor.calibrado and editor.k:
+   17:             editor.label_escala.config(
+   18:                 text=f"k={editor.k*1000:.3f}mm/px",
+   19:                 fg=COR_SUCESSO)
+   20:         editor._redesenhar()
+   21:         self._trocar(editor)
+   22: 
+
+--- como img_drone vira self.algo no __init__ ---
+  L63: Image.open(caminho).convert('RGBA')
+  L671: img_drone=None, elementos_iniciais=None):
+  L675: self.img_drone    = img_drone

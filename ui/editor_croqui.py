@@ -39,6 +39,8 @@ from desenho.veiculos_arte import (
     arte_bicicleta, arte_pedestre, escurecer,
 )
 from popups.popup_veiculo import PopupModeloVeiculo, MODELOS_VEICULOS
+from desenho import render_svg
+from desenho import catalogo_veiculos
 from popups.popup_placas import PopupPlacas
 from popups.popup_modelo_via import PopupModeloVia
 from widgets.editor_texto import EditorTextoInline
@@ -655,10 +657,10 @@ class EditorCroqui(tk.Frame):
         ("sel",       "↖",  "Selecionar / mover"),
         ("r1",        "R1", "Traçar eixo R1"),
         ("r2",        "R2", "Traçar eixo R2"),
-        ("carro",     "🚗", "Veículo — carro"),
-        ("moto",      "🏍", "Veículo — moto"),
-        ("caminhao",  "🚚", "Veículo — caminhão"),
-        ("bicicleta", "🚲", "Veículo — bicicleta"),
+        ("carro",     "🚗", "Carro"),
+        ("moto",      "🏍", "Motocicleta"),
+        ("caminhao",  "🚚", "Caminhão"),
+        ("bicicleta", "🚲", "Bicicleta"),
         ("pedestre",  "🚶", "Pedestre"),
         ("sc",        "✕",  "Sítio de colisão (SC)"),
         ("cota",      "↔",  "Cota / medida"),
@@ -818,7 +820,7 @@ class EditorCroqui(tk.Frame):
             return f
 
         _btn_header(dir_, "💾", "Salvar", self._salvar, DOURADO)
-        _btn_header(dir_, "📄", "PDF",    self._exportar_pdf)
+        _btn_header(dir_, "📄", "Exportar", self._exportar_pdf)
         _btn_header(dir_, "🏠", "Início", self._voltar)
 
         # Corpo
@@ -857,7 +859,7 @@ class EditorCroqui(tk.Frame):
                                width=2)
             lbl_ico.pack(side="left", padx=(8,4), pady=6)
             # Label
-            lbl_txt = tk.Label(f, text=dica.split("—")[0].split("/")[0].strip(),
+            lbl_txt = tk.Label(f, text=dica.split("(")[0].strip(),
                                font=FONTE_SMALL,
                                bg=FUNDO_PAINEL, fg=TEXTO_SECUNDARIO,
                                anchor="w")
@@ -1335,6 +1337,19 @@ class EditorCroqui(tk.Frame):
             _campo(f"Altura ({unidade})",
                    f"{el['alt'] * fator:.2f}", set_alt)
 
+        # Espessura — linhas R1/R2 e Cota
+        if el["tipo"] in ("r1", "r2", "cota"):
+            _esp_def = {"r1": 2, "r2": 2, "cota": 1}.get(el["tipo"], 2)
+            def set_esp(v):
+                el["espessura"] = max(1, int(float(v)))
+            _campo("Espessura (px)",
+                   str(el.get("espessura", _esp_def)), set_esp)
+
+        # Cor default para r1/r2/cota (para o seletor aparecer)
+        if el["tipo"] in ("r1", "r2", "cota") and not el.get("cor"):
+            el["cor"] = {"r1": COR_R1, "r2": COR_R2,
+                         "cota": COR_COTA}.get(el["tipo"], "#888888")
+
         # Cor (com seletor)
         if el.get("cor"):
             cf = tk.Frame(self._props, bg=FUNDO_PAINEL)
@@ -1348,14 +1363,15 @@ class EditorCroqui(tk.Frame):
             swatch.pack(side="left", padx=(0,6))
             swatch.pack_propagate(False)
             def _trocar_cor(event):
-                from tkinter import colorchooser
-                cor = colorchooser.askcolor(
-                    initialcolor=el.get("cor", "#888888"),
-                    parent=self.winfo_toplevel())
-                if cor and cor[1]:
-                    el["cor"] = cor[1]
-                    swatch.config(bg=cor[1])
+                from widgets.seletor_cor import escolher_cor
+                nova = escolher_cor(self.winfo_toplevel(),
+                                    el.get("cor", "#888888"))
+                if nova:
+                    el["cor"] = nova
+                    swatch.config(bg=nova)
                     self._redesenhar()
+                    if self.sel_idx is not None:
+                        self._mostrar_props(self.sel_idx)
             swatch.bind("<Button-1>", _trocar_cor)
             tk.Label(cf, text=cor_atual, font=FONTE_MICRO,
                      bg=FUNDO_PAINEL, fg=TEXTO_SECUNDARIO).pack(side="left")
@@ -1380,6 +1396,44 @@ class EditorCroqui(tk.Frame):
     #  FERRAMENTAS
     # ──────────────────────────────────────────
     def _toggle_modo_via(self):
+        """Modo Via temporariamente desabilitado (em desenvolvimento)."""
+        win = tk.Toplevel(self)
+        win.overrideredirect(True)
+        win.configure(bg=FUNDO_PAINEL,
+                      highlightbackground=DOURADO, highlightthickness=1)
+        win.grab_set()
+        win.attributes("-topmost", True)
+        ww, wh = 380, 200
+        sw, sh = win.winfo_screenwidth(), win.winfo_screenheight()
+        win.geometry(f"{ww}x{wh}+{(sw-ww)//2}+{(sh-wh)//2}")
+        tk.Frame(win, bg=DOURADO, height=3).pack(fill="x")
+        tk.Label(win, text="🛣  Modo Via", font=FONTE_H3,
+                 bg=FUNDO_PAINEL, fg=DOURADO).pack(pady=(20, 6))
+        tk.Label(win,
+                 text="Esta funcionalidade está em desenvolvimento\n"
+                      "e será disponibilizada em uma próxima versão.",
+                 font=FONTE_BODY, bg=FUNDO_PAINEL,
+                 fg=TEXTO_PRIMARIO, justify="center").pack(pady=4)
+        tk.Label(win,
+                 text="Use os modelos de via prontos na tela inicial.",
+                 font=FONTE_SMALL, bg=FUNDO_PAINEL,
+                 fg=TEXTO_SECUNDARIO, justify="center").pack(pady=(2, 14))
+        bok = tk.Frame(win, bg=AZUL_MEDIO, cursor="hand2")
+        bok.pack()
+        lo = tk.Label(bok, text="Entendi", font=FONTE_BODY_BOLD,
+                      bg=AZUL_MEDIO, fg=TEXTO_PRIMARIO, padx=24, pady=7)
+        lo.pack()
+        for w in (bok, lo):
+            w.bind("<Button-1>", lambda e: win.destroy())
+            w.bind("<Enter>", lambda e: (bok.config(bg=AZUL_CLARO),
+                                          lo.config(bg=AZUL_CLARO)))
+            w.bind("<Leave>", lambda e: (bok.config(bg=AZUL_MEDIO),
+                                          lo.config(bg=AZUL_MEDIO)))
+        tk.Frame(win, bg=DOURADO, height=3).pack(fill="x", side="bottom")
+        win.bind("<Escape>", lambda e: win.destroy())
+        win.bind("<Return>", lambda e: win.destroy())
+
+    def _toggle_modo_via_PRESERVADO(self):
         """Alterna entre modo normal e modo arte/via no mesmo canvas."""
         self._modo_via = not self._modo_via
         if self._modo_via:
@@ -1418,6 +1472,7 @@ class EditorCroqui(tk.Frame):
             self._ferr_via = None
             self._set_ferr("sel")
         self._redesenhar()
+
 
     def _set_ferr_via(self, f):
         """Define ferramenta no modo via."""
@@ -1820,10 +1875,8 @@ class EditorCroqui(tk.Frame):
         if tipo in ("carro","moto","caminhao","bicicleta","pedestre"):
             n=sum(1 for e in self.elementos if e["tipo"]==tipo)+1
             sig={"carro":"V","moto":"V","caminhao":"V","bicicleta":"B","pedestre":"P"}
-            label=simpledialog.askstring(
-                "Identificação","Identificação (ex: V1 — FIORINO):",
-                initialvalue=f"{sig[tipo]}{n}",
-                parent=self.winfo_toplevel()) or f"{sig[tipo]}{n}"
+            # Auto-gera o rotulo — editavel depois no painel Propriedades
+            label=f"{sig[tipo]}{n}"
         elif tipo=="texto":
             label = ""  # será preenchido pelo EditorTexto
         elif tipo=="sc":
@@ -1842,13 +1895,8 @@ class EditorCroqui(tk.Frame):
         self._atualizar_camadas()
         self._redesenhar()
 
-        # Abre automaticamente o diálogo de ajuste
-        if tipo in ("carro","moto","caminhao","bicicleta","pedestre","sc"):
-            dlg=DialogoRedimensionar(self.winfo_toplevel(),el,self._redesenhar)
-            self.winfo_toplevel().wait_window(dlg)
-            self._atualizar_camadas()
-            self._redesenhar()
-        elif tipo == "texto":
+        # Veiculos: ajuste direto pelos handles/painel (sem dialogo)
+        if tipo == "texto":
             # Abre editor de texto inline
             self._abrir_editor_texto(el)
 
@@ -2355,7 +2403,7 @@ class EditorCroqui(tk.Frame):
 
         # ── Eixos R1/R2 — linha livre em qualquer ângulo ──
         if tipo in ("r1","r2"):
-            cor_eixo  = COR_R1 if tipo=="r1" else COR_R2
+            cor_eixo  = el.get("cor", COR_R1 if tipo=="r1" else COR_R2)
             nome_eixo = "R1"   if tipo=="r1" else "R2"
             esp = el.get("espessura", 2)
             if "x2" in el:
@@ -2394,10 +2442,12 @@ class EditorCroqui(tk.Frame):
         # ── Cota ──
         if tipo=="cota":
             tx2,ty2=self._mt(el["x2"],el["y2"])
-            c.create_line(tx,ty,tx2,ty2,fill=COR_COTA,width=1,
+            _cc = el.get("cor", COR_COTA)
+            _ce = max(1, int(el.get("espessura", 1)))
+            c.create_line(tx,ty,tx2,ty2,fill=_cc,width=_ce,
                           arrow="both",arrowshape=(6,8,3))
             c.create_text((tx+tx2)/2,(ty+ty2)/2-8,text=label,
-                          fill=COR_COTA,font=FONTE_MONO,anchor="s"); return
+                          fill=_cc,font=FONTE_MONO,anchor="s"); return
 
         # ── Vias manuais ──
         if tipo in ("via_h","via_v"):
@@ -2422,6 +2472,7 @@ class EditorCroqui(tk.Frame):
             # Busca função de arte e PNG do modelo
             arte_fn = None
             png_file = None
+            svg_nome = None
             modelo_chave = el.get("modelo")
             if modelo_chave and tipo in MODELOS_VEICULOS:
                 for m in MODELOS_VEICULOS[tipo]:
@@ -2432,8 +2483,19 @@ class EditorCroqui(tk.Frame):
             if tipo == "bicicleta": arte_fn = _arte_bicicleta
             if tipo == "pedestre":  arte_fn = _arte_pedestre
 
-            if arte_fn:
-                self._veiculo_arte(tx, ty, ang, larg, alt, cor, label, arte_fn, png=png_file)
+            # Descobre o SVG pelo catalogo (nova arquitetura).
+            # A chave do modelo pode estar no catalogo novo (32 itens);
+            # se houver svg correspondente, o motor o usa.
+            try:
+                _citem = catalogo_veiculos.get(modelo_chave) if modelo_chave else None
+                if _citem:
+                    svg_nome = _citem.get("svg")
+            except Exception:
+                svg_nome = None
+
+            if arte_fn or svg_nome:
+                self._veiculo_arte(tx, ty, ang, larg, alt, cor, label,
+                                   arte_fn, png=png_file, svg_nome=svg_nome)
             else:
                 self._veiculo(tx, ty, ang, larg, alt, cor, label)
 
@@ -2470,17 +2532,38 @@ class EditorCroqui(tk.Frame):
         if sel:
             pass  # circulo removido — handles indicam selecao
 
-    def _veiculo_arte(self, tx, ty, angulo, larg, alt, cor, label, arte_fn, png=None):
+    def _veiculo_arte(self, tx, ty, angulo, larg, alt, cor, label, arte_fn, png=None, svg_nome=None):
         """
-        Desenha veículo com PNG (se disponível) ou arte vetorial.
-        Rotação via PIL para PNG, via polígonos rotacionados para vetorial.
+        Desenha veículo. Ordem de prioridade:
+          1. SVG por camadas (novo motor) — se o .svg existir na pasta
+          2. PNG tinturizado (legado)
+          3. Arte vetorial (fallback final)
+        Sem SVG presente, comporta-se exatamente como antes.
         """
         c = self.canvas
         sc = self.zoom
         desenhado = False
 
-        # ── Tenta renderizar via PNG ──
-        if PIL_OK and png:
+        # ── 1) Tenta renderizar via SVG (motor novo) ──
+        if PIL_OK and svg_nome:
+            try:
+                # Tamanho em pixels conforme zoom (mesma proporcao do PNG)
+                tw = max(4, int(larg * sc * 1.6))
+                th = max(4, int(alt  * sc * 2.8))
+                img_svg = render_svg.render_veiculo(
+                    svg_nome, cor, tw, th, angulo % 360)
+                if img_svg is not None:
+                    tk_img = ImageTk.PhotoImage(img_svg)
+                    if not hasattr(self, "_tk_imgs"):
+                        self._tk_imgs = []
+                    self._tk_imgs.append(tk_img)
+                    c.create_image(tx, ty, image=tk_img, anchor="center")
+                    desenhado = True
+            except Exception as e:
+                print(f"[SVG render] {e}")
+
+        # ── 2) Tenta renderizar via PNG ──
+        if not desenhado and PIL_OK and png:
             img_base = carregar_imagem_veiculo(png, cor)
             if img_base:
                 try:
@@ -2585,58 +2668,178 @@ class EditorCroqui(tk.Frame):
                 self._lbl_local.config(text=novo.strip())
 
     def _salvar(self):
-        dados={**self.dados_caso,"modo":self.modo,"k":self.k,
-               "u_k":self.u_k,"calibrado":self.calibrado,
-               "elementos":self.elementos}
-        bo=self.dados_caso.get("bo","").replace("/","-")
-        nome=f"BO_{bo}_{datetime.date.today()}.sicro"
-        cam=DIR_CROQUIS/nome
-        with open(cam,"w",encoding="utf-8") as f:
-            json.dump(dados,f,ensure_ascii=False,indent=2)
-        messagebox.showinfo("Salvo",f"Croqui salvo:\n{cam}")
+        import base64, io
+        agora = datetime.datetime.now().isoformat(timespec="seconds")
+        # Imagem base (drone) embutida em base64
+        imagem_base = {"presente": False, "dados_b64": None,
+                       "largura": 0, "altura": 0}
+        if self.img_drone is not None and PIL_OK:
+            try:
+                buf = io.BytesIO()
+                self.img_drone.save(buf, format="PNG")
+                b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+                imagem_base = {
+                    "presente": True,
+                    "dados_b64": b64,
+                    "largura": self.img_drone.width,
+                    "altura": self.img_drone.height,
+                }
+            except Exception as e:
+                print("Aviso: falha ao embutir imagem:", e)
+        # Preserva criado_em se ja existia
+        criado = getattr(self, "_criado_em", None) or agora
+        self._criado_em = criado
+        dados = {
+            "versao_sicro": "1.0",
+            "metadata": {
+                "bo":        self.dados_caso.get("bo", ""),
+                "requisicao":self.dados_caso.get("requisicao", ""),
+                "local":     self.dados_caso.get("local", ""),
+                "municipio": self.dados_caso.get("municipio", ""),
+                "perito":    self.dados_caso.get("perito", ""),
+                "data":      self.dados_caso.get("data", ""),
+                "criado_em":    criado,
+                "modificado_em": agora,
+            },
+            "config": {
+                "modo":         self.modo,
+                "calibrado":    self.calibrado,
+                "k":            self.k,
+                "u_k":          self.u_k,
+                "norte_angulo": getattr(self, "norte_angulo", 0),
+            },
+            "imagem_base": imagem_base,
+            "elementos": self.elementos,
+            "historico": [],
+        }
+        bo = self.dados_caso.get("bo", "").replace("/", "-")
+        nome = f"BO_{bo}_{datetime.date.today()}.sicro"
+        cam = DIR_CROQUIS / nome
+        with open(cam, "w", encoding="utf-8") as f:
+            json.dump(dados, f, ensure_ascii=False, indent=2)
+        kb = cam.stat().st_size / 1024
+        messagebox.showinfo("Salvo",
+            f"Croqui salvo:\n{cam}\n\nTamanho: {kb:.0f} KB"
+            + ("\nImagem do drone embutida." if imagem_base["presente"] else ""))
+
+    def _enquadrar_tudo(self):
+        """Ajusta zoom/pan para mostrar todos os elementos (para captura)."""
+        pts = []
+        for el in self.elementos:
+            for kx, ky in (("x","y"), ("x2","y2")):
+                if kx in el and ky in el:
+                    pts.append((el[kx], el[ky]))
+        if not pts:
+            return
+        xs = [p[0] for p in pts]; ys = [p[1] for p in pts]
+        minx, maxx = min(xs), max(xs)
+        miny, maxy = min(ys), max(ys)
+        marg = 60
+        bw = max(1, maxx - minx); bh = max(1, maxy - miny)
+        cw = max(1, self.canvas.winfo_width())
+        ch = max(1, self.canvas.winfo_height())
+        z = min((cw - 2*marg)/bw, (ch - 2*marg)/bh)
+        z = max(0.1, min(10.0, z))
+        self.zoom = z
+        cx_m = (minx + maxx)/2
+        cy_m = (miny + maxy)/2
+        self.pan_x = cw/2 - cx_m*z
+        self.pan_y = ch/2 - cy_m*z
+        self._redesenhar()
 
     def _exportar_pdf(self):
+        """Exporta a prancha pericial em PDF ou PNG."""
+        if not PIL_OK:
+            messagebox.showerror("Pillow", "pip install Pillow")
+            return
+        # Pergunta o formato
+        win = tk.Toplevel(self)
+        win.overrideredirect(True)
+        win.configure(bg=FUNDO_PAINEL,
+                      highlightbackground=DOURADO, highlightthickness=1)
+        sw, sh = win.winfo_screenwidth(), win.winfo_screenheight()
+        ww, wh = 320, 170
+        win.geometry(f"{ww}x{wh}+{(sw-ww)//2}+{(sh-wh)//2}")
+        win.grab_set(); win.attributes("-topmost", True)
+        tk.Frame(win, bg=DOURADO, height=3).pack(fill="x")
+        tk.Label(win, text="Exportar prancha pericial",
+                 font=FONTE_H3, bg=FUNDO_PAINEL,
+                 fg=TEXTO_PRIMARIO).pack(pady=(16, 4))
+        tk.Label(win, text="Escolha o formato do documento:",
+                 font=FONTE_SMALL, bg=FUNDO_PAINEL,
+                 fg=TEXTO_SECUNDARIO).pack(pady=(0, 12))
+        escolha = {"fmt": None}
+        bf = tk.Frame(win, bg=FUNDO_PAINEL); bf.pack()
+        def _pick(f):
+            escolha["fmt"] = f; win.destroy()
+        for txt, fmt, cor in (("PDF", "pdf", AZUL_MEDIO),
+                              ("PNG", "png", FUNDO_CARD)):
+            b = tk.Frame(bf, bg=cor, cursor="hand2")
+            b.pack(side="left", padx=8)
+            lb = tk.Label(b, text=txt, font=FONTE_BODY_BOLD,
+                          bg=cor, fg=TEXTO_PRIMARIO, padx=26, pady=9)
+            lb.pack()
+            for w in (b, lb):
+                w.bind("<Button-1>", lambda e, f=fmt: _pick(f))
+        tk.Label(win, text="Esc para cancelar", font=FONTE_MICRO,
+                 bg=FUNDO_PAINEL, fg=TEXTO_TERCIARIO).pack(pady=(12, 0))
+        win.bind("<Escape>", lambda e: win.destroy())
+        self.wait_window(win)
+        fmt = escolha["fmt"]
+        if not fmt:
+            return
+
+        ext = ".pdf" if fmt == "pdf" else ".png"
+        bo = self.dados_caso.get("bo", "").replace("/", "_")
+        path = filedialog.asksaveasfilename(
+            defaultextension=ext,
+            filetypes=[(fmt.upper(), f"*{ext}")],
+            initialfile=f"Prancha_BO_{bo}{ext}")
+        if not path:
+            return
+
+        # Captura o croqui INTEIRO: salva estado, da zoom total
+        z0, px0, py0 = self.zoom, self.pan_x, self.pan_y
         try:
-            from reportlab.pdfgen import canvas as rl
-            from reportlab.lib.pagesizes import A4,landscape
-            from reportlab.lib.units import mm
-        except ImportError:
-            messagebox.showerror("ReportLab","pip install reportlab"); return
-        path=filedialog.asksaveasfilename(
-            defaultextension=".pdf",filetypes=[("PDF","*.pdf")],
-            initialfile=f"Croqui_BO_{self.dados_caso.get('bo','').replace('/','_')}.pdf")
-        if not path: return
-        W_pt,H_pt=landscape(A4)
-        cv=rl.Canvas(path,pagesize=(W_pt,H_pt))
-        cv.setFont("Helvetica-Bold",14)
-        cv.drawCentredString(W_pt/2,H_pt-20*mm,"SICRO PCI/AP — CROQUI DE AMARRAÇÃO")
-        cv.setFont("Helvetica",10)
-        cv.drawCentredString(W_pt/2,H_pt-27*mm,
-            f"BO Nº {self.dados_caso.get('bo','')}  ·  "
-            f"{self.dados_caso.get('local','')}  ·  "
-            f"{self.dados_caso.get('data','')}")
-        if PIL_OK:
-            try:
-                from PIL import ImageGrab
-                x0=self.canvas.winfo_rootx(); y0=self.canvas.winfo_rooty()
-                x1=x0+self.canvas.winfo_width(); y1=y0+self.canvas.winfo_height()
-                img=ImageGrab.grab(bbox=(x0,y0,x1,y1))
-                tmp=Path.home()/"SicroPCIAP"/"_tmp.png"
-                img.save(tmp)
-                cv.drawImage(str(tmp),15*mm,15*mm,
-                             width=W_pt-30*mm,height=H_pt-50*mm,
-                             preserveAspectRatio=True)
-                tmp.unlink(missing_ok=True)
-            except Exception: pass
-        cv.setFont("Helvetica",8)
-        cv.drawString(15*mm,8*mm,
-            f"Perito: {self.dados_caso.get('perito','')}  ·  "
-            f"SICRO PCI/AP  ·  {datetime.date.today()}")
-        if self.calibrado and self.k:
-            cv.drawRightString(W_pt-15*mm,8*mm,
-                f"k={self.k:.5f} m/px  |  ±{self.u_k*1000:.3f}mm/px")
-        cv.save()
-        messagebox.showinfo("PDF exportado",f"Salvo:\n{path}")
+            self._enquadrar_tudo()
+        except Exception:
+            pass
+        self.update_idletasks()
+        self.canvas.update()
+
+        img_croqui = None
+        try:
+            from PIL import ImageGrab
+            x0 = self.canvas.winfo_rootx()
+            y0 = self.canvas.winfo_rooty()
+            x1 = x0 + self.canvas.winfo_width()
+            y1 = y0 + self.canvas.winfo_height()
+            img_croqui = ImageGrab.grab(bbox=(x0, y0, x1, y1))
+        except Exception as e:
+            messagebox.showwarning("Captura",
+                f"Nao foi possivel capturar o croqui: {e}")
+
+        # Restaura estado do canvas
+        self.zoom, self.pan_x, self.pan_y = z0, px0, py0
+        self._redesenhar()
+
+        # Brasao (do app principal)
+        brasao = getattr(self.winfo_toplevel(), "_brasao", None)
+
+        try:
+            from arquivo.prancha import gerar_prancha
+            gerar_prancha(path, fmt, self.dados_caso, self.elementos,
+                          img_croqui, self.calibrado, self.k,
+                          self.u_k, brasao)
+        except ImportError as e:
+            messagebox.showerror("Dependencia",
+                f"Falta biblioteca: {e}\n\nPara PDF: pip install reportlab")
+            return
+        except Exception as e:
+            messagebox.showerror("Erro ao gerar", str(e))
+            return
+        messagebox.showinfo("Prancha exportada",
+            f"Documento salvo:\n{path}")
 
     def _voltar(self):
         if messagebox.askyesno("Voltar",
