@@ -1,0 +1,325 @@
+============================================================
+popup_veiculo.py COMPLETO (106 linhas)
+============================================================
+  1: import tkinter as tk
+  2: import sys
+  3: from pathlib import Path
+  4: _raiz = Path(__file__).parent.parent
+  5: if str(_raiz) not in sys.path:
+  6:     sys.path.insert(0, str(_raiz))
+  7: from config import (
+  8:     COR_FUNDO, COR_PAINEL, COR_CARD, AMARELO, BRANCO, CINZA_CLARO,
+  9:     FONTE_SUB, FONTE_PEQ, AZUL_CLARO, COR_PERIGO,
+ 10: )
+ 11: from desenho.veiculos_arte import (
+ 12:     arte_sedan, arte_suv, arte_hatch,
+ 13:     arte_moto_esportiva, arte_moto_urbana, arte_moto_carga,
+ 14:     arte_caminhao_leve, arte_caminhao_truck, arte_caminhao_carreta,
+ 15: )
+ 16: 
+ 17: 
+ 18: # Catalogo de modelos de veiculos
+ 19: MODELOS_VEICULOS = {
+ 20:     'carro': [
+ 21:         {'chave':'sedan',  'nome':'Sedan',       'desc':'4 portas',        'arte':arte_sedan,          'png':'sedan.png', 'larg':28,'alt':14,'cor':AZUL_CLARO},
+ 22:         {'chave':'suv',    'nome':'SUV / Picape', 'desc':'4x4, utilitario', 'arte':arte_suv,            'png':'suv.png',   'larg':30,'alt':16,'cor':'#3A8A3A'},
+ 23:         {'chave':'hatch',  'nome':'Hatchback',    'desc':'Compacto',        'arte':arte_hatch,          'png':'hatch.png', 'larg':24,'alt':13,'cor':'#A04040'},
+ 24:     ],
+ 25:     'moto': [
+ 26:         {'chave':'esportiva','nome':'Esportiva',      'desc':'Moto baixa',    'arte':arte_moto_esportiva,'larg':20,'alt':7,'cor':'#9B3030'},
+ 27:         {'chave':'urbana',   'nome':'Urbana / Naked', 'desc':'Guidad alto',   'arte':arte_moto_urbana,  'larg':18,'alt':8,'cor':'#9B6BDF'},
+ 28:         {'chave':'carga',    'nome':'Motoboy / Carga','desc':'Com bau',       'arte':arte_moto_carga,   'larg':22,'alt':9,'cor':'#3A6A3A'},
+ 29:     ],
+ 30:     'caminhao': [
+ 31:         {'chave':'leve',   'nome':'Caminhao leve', 'desc':'VUC / 3/4',           'arte':arte_caminhao_leve,   'larg':36,'alt':16,'cor':COR_PERIGO},
+ 32:         {'chave':'truck',  'nome':'Caminhao truck','desc':'Toco / truck',         'arte':arte_caminhao_truck,  'larg':48,'alt':18,'cor':'#C06020'},
+ 33:         {'chave':'carreta','nome':'Carreta',        'desc':'Bitrem / semirreboque','arte':arte_caminhao_carreta,'larg':56,'alt':17,'cor':'#606060'},
+ 34:     ],
+ 35: }
+ 36: 
+ 37: 
+ 38: class PopupModeloVeiculo(tk.Toplevel):
+ 39:     def __init__(self, parent, tipo_base):
+ 40:         super().__init__(parent)
+ 41:         self.title(f'Escolha o modelo - {tipo_base.capitalize()}')
+ 42:         self.configure(bg=COR_FUNDO)
+ 43:         self.resizable(False, False)
+ 44:         self.resultado = None
+ 45:         modelos = MODELOS_VEICULOS.get(tipo_base, [])
+ 46:         n = len(modelos)
+ 47:         card_w, card_h = 210, 175
+ 48:         pad = 12
+ 49:         w = n * card_w + (n + 1) * pad
+ 50:         h = 310
+ 51:         sw, sh = self.winfo_screenwidth(), self.winfo_screenheight()
+ 52:         self.geometry(f'{w}x{h}+{(sw-w)//2}+{(sh-h)//2}')
+ 53:         self.lift()
+ 54:         self.focus_force()
+ 55:         self.grab_set()
+ 56:         tk.Frame(self, bg=AMARELO, height=4).pack(fill='x')
+ 57:         cab = tk.Frame(self, bg=COR_PAINEL)
+ 58:         cab.pack(fill='x')
+ 59:         icone_cat = {'carro':'🚗','moto':'🏍','caminhao':'🚚'}.get(tipo_base,'🚗')
+ 60:         tk.Label(cab, text=f'{icone_cat}  Escolha o modelo de {tipo_base}',
+ 61:                  font=FONTE_SUB, bg=COR_PAINEL, fg=AMARELO).pack(
+ 62:                      side='left', padx=16, pady=10)
+ 63:         grid_frame = tk.Frame(self, bg=COR_FUNDO)
+ 64:         grid_frame.pack(fill='both', expand=True, padx=pad, pady=pad)
+ 65:         for col, modelo in enumerate(modelos):
+ 66:             self._card(grid_frame, modelo, col, card_w, card_h)
+ 67:         tk.Frame(self, bg=AMARELO, height=4).pack(fill='x', side='bottom')
+ 68: 
+ 69:     def _card(self, parent, modelo, col, cw, ch):
+ 70:         card = tk.Frame(parent, bg=COR_CARD, cursor='hand2', width=cw, height=ch)
+ 71:         card.grid(row=0, column=col, padx=8, pady=4, sticky='nsew')
+ 72:         card.grid_propagate(False)
+ 73:         parent.grid_columnconfigure(col, weight=1)
+ 74:         prev = tk.Canvas(card, width=cw-16, height=105, bg='#0D1830', highlightthickness=0)
+ 75:         prev.pack(padx=8, pady=(10,4))
+ 76:         self._desenhar_preview(prev, modelo, cw-16, 105)
+ 77:         lbl_nome = tk.Label(card, text=modelo['nome'],
+ 78:                             font=('Segoe UI',10,'bold'), bg=COR_CARD, fg=BRANCO)
+ 79:         lbl_nome.pack()
+ 80:         lbl_desc = tk.Label(card, text=modelo['desc'],
+ 81:                             font=FONTE_PEQ, bg=COR_CARD, fg=CINZA_CLARO)
+ 82:         lbl_desc.pack()
+ 83:         def sel(m=modelo):
+ 84:             self.resultado = m
+ 85:             self.destroy()
+ 86:         def hover_in(e, f=card):
+ 87:             f.config(bg='#2A3060')
+ 88:             for w in f.winfo_children():
+ 89:                 try: w.config(bg='#2A3060')
+ 90:                 except Exception: pass
+ 91:         def hover_out(e, f=card):
+ 92:             f.config(bg=COR_CARD)
+ 93:             for w in f.winfo_children():
+ 94:                 try: w.config(bg=COR_CARD)
+ 95:                 except Exception: pass
+ 96:         for widget in [card, prev, lbl_nome, lbl_desc]:
+ 97:             widget.bind('<Button-1>', lambda e, m=modelo: sel(m))
+ 98:         card.bind('<Enter>', hover_in)
+ 99:         card.bind('<Leave>', hover_out)
+100: 
+101:     def _desenhar_preview(self, c, modelo, pw, ph):
+102:         cx, cy = pw // 2, ph // 2
+103:         larg_ref = modelo['larg']
+104:         sc = min((pw - 24) / (larg_ref * 2.2), 1.6)
+105:         sc = max(sc, 0.5)
+106:         modelo['arte'](c, cx, cy, sc, modelo['cor'])
+107: 
+
+============================================================
+FERRAMENTAS atual (ordem dos botoes)
+============================================================
+(L656)
+  FERRAMENTAS = [
+          ("sel",       "↖",  "Selecionar / mover"),
+          ("r1",        "R1", "Traçar eixo R1"),
+          ("r2",        "R2", "Traçar eixo R2"),
+          ("carro",     "🚗", "Carro"),
+          ("moto",      "🏍", "Motocicleta"),
+          ("caminhao",  "🚚", "Caminhão"),
+          ("bicicleta", "🚲", "Bicicleta"),
+          ("pedestre",  "🚶", "Pedestre"),
+          ("sc",        "✕",  "Sítio de colisão (SC)"),
+          ("cota",      "↔",  "Cota / medida"),
+          ("calibrar",  "📐", "Calibrar escala (drone)"),
+          ("texto",     "T",  "Texto / anotação"),
+          ("apagar",    "⌫",  "Apagar elemento"),
+      ]
+
+============================================================
+Como _click trata as ferramentas (onde chama _inserir)
+============================================================
+    0:     def _click(self,e):
+    1:         x,y=self._tm(e.x,e.y)
+    2:         if self._modo_via:
+    3:             self._click_via(e, x, y)
+    4:             return
+    5:         f=self.ferramenta
+    6:         # Detecta clique em handle de BORDA (resize 1 eixo)
+    7:         if f=="sel" and self.sel_idx is not None:
+    8:             for hx, hy, hr, nome in getattr(self, "_borda_handles", []):
+    9:                 if (e.x-hx)**2 + (e.y-hy)**2 <= (hr+4)**2:
+   10:                     self._resize_borda = nome
+   11:                     self._salvar_historico()
+   12:                     el = self.elementos[self.sel_idx]
+   13:                     import math
+   14:                     larg_p={"carro":28,"moto":20,"caminhao":36,
+   15:                             "bicicleta":16,"pedestre":14,"sc":20}
+   16:                     alt_p= {"carro":14,"moto":8,"caminhao":16,
+   17:                             "bicicleta":5,"pedestre":14,"sc":20}
+   18:                     t = el.get("tipo")
+   19:                     self._rb_larg0 = el.get("larg", larg_p.get(t,28))
+   20:                     self._rb_alt0  = el.get("alt",  alt_p.get(t,14))
+   21:                     self._rb_mouse0 = (e.x, e.y)
+   22:                     self._rb_cx, self._rb_cy = self._mt(
+   23:                         el.get("x",0), el.get("y",0))
+   24:                     self._rb_ang = el.get("angulo", 0)
+   25:                     return
+   26:         # Detecta clique em handle de CANTO (resize)
+   27:         if f=="sel" and self.sel_idx is not None:
+   28:             for hx, hy, hr, nome in getattr(self, "_canto_handles", []):
+   29:                 if (e.x-hx)**2 + (e.y-hy)**2 <= (hr+4)**2:
+   30:                     self._redimensionando = nome
+   31:                     self._salvar_historico()
+   32:                     el = self.elementos[self.sel_idx]
+   33:                     # Guarda larg/alt inicial e ponto inicial do mouse
+   34:                     import math
+   35:                     larg_p={"carro":28,"moto":20,"caminhao":36,
+   36:                             "bicicleta":16,"pedestre":14,"sc":20}
+   37:                     alt_p= {"carro":14,"moto":8,"caminhao":16,
+   38:                             "bicicleta":5,"pedestre":14,"sc":20}
+   39:                     t = el.get("tipo")
+   40:                     self._resize_larg0 = el.get("larg", larg_p.get(t,28))
+   41:                     self._resize_alt0  = el.get("alt",  alt_p.get(t,14))
+   42:                     self._resize_mouse0 = (e.x, e.y)
+   43:                     self._resize_cx, self._resize_cy = self._mt(
+   44:                         el.get("x",0), el.get("y",0))
+   45:                     return
+   46:         # Detecta clique no handle de rotacao
+   47:         if f=="sel" and self.sel_idx is not None:
+   48:             hp = getattr(self, "_rot_handle_pos", None)
+   49:             if hp is not None:
+   50:                 hx, hy, hr = hp
+   51:                 if (e.x-hx)**2 + (e.y-hy)**2 <= (hr+4)**2:
+   52:                     self._rotacionando = True
+   53:                     self._salvar_historico()
+   54:                     return
+   55:         if f=="sel":         self._selecionar(x,y)
+   56:         elif f=="apagar":    self._apagar_em(x,y)
+   57:         elif f=="calibrar":  self._calib_click(x,y,e.x,e.y)
+   58:         elif f in ("r1","r2","cota"):
+   59:             self.drag_start=(x,y)
+   60:         elif f in ("carro","moto","caminhao","bicicleta",
+   61:                    "pedestre","sc","texto"):
+   62:             self._inserir(f,x,y)
+   63: 
+   64: 
+
+============================================================
+_inserir COMPLETO (vamos refatorar para desacoplar)
+============================================================
+    0:     def _inserir(self,tipo,x,y):
+    1:         label=""
+    2:         modelo_chave = None
+    3:         modelo_larg  = None
+    4:         modelo_alt   = None
+    5:         modelo_cor   = None
+    6: 
+    7:         # ── Popup de seleção de modelo para veículos ──
+    8:         if tipo in ("carro", "moto", "caminhao"):
+    9:             popup = PopupModeloVeiculo(self.winfo_toplevel(), tipo)
+   10:             self.winfo_toplevel().wait_window(popup)
+   11:             if popup.resultado is None:
+   12:                 return   # cancelou / fechou sem escolher
+   13:             m = popup.resultado
+   14:             modelo_chave = m["chave"]
+   15:             modelo_larg  = m["larg"]
+   16:             modelo_alt   = m["alt"]
+   17:             modelo_cor   = m["cor"]
+   18: 
+   19:         if tipo in ("carro","moto","caminhao","bicicleta","pedestre"):
+   20:             n=sum(1 for e in self.elementos if e["tipo"]==tipo)+1
+   21:             sig={"carro":"V","moto":"V","caminhao":"V","bicicleta":"B","pedestre":"P"}
+   22:             # Auto-gera o rotulo — editavel depois no painel Propriedades
+   23:             label=f"{sig[tipo]}{n}"
+   24:         elif tipo=="texto":
+   25:             label = ""  # será preenchido pelo EditorTexto
+   26:         elif tipo=="sc":
+   27:             label="SC"
+   28: 
+   29:         el={"tipo":tipo,"x":x,"y":y,"label":label,"angulo":0}
+   30:         if modelo_chave: el["modelo"] = modelo_chave
+   31:         if modelo_larg:  el["larg"]   = modelo_larg
+   32:         if modelo_alt:   el["alt"]    = modelo_alt
+   33:         if modelo_cor:   el["cor"]    = modelo_cor
+   34: 
+   35:         self._salvar_historico()
+   36:         self.elementos.append(el)
+   37:         self.sel_idx=len(self.elementos)-1
+   38: 
+   39:         self._atualizar_camadas()
+   40:         self._redesenhar()
+   41: 
+   42:         # Veiculos: ajuste direto pelos handles/painel (sem dialogo)
+   43:         if tipo == "texto":
+   44:             # Abre editor de texto inline
+   45:             self._abrir_editor_texto(el)
+   46: 
+   47:     # ──────────────────────────────────────────
+   48:     #  MODO CRIAÇÃO DE VIA
+   49:     # ──────────────────────────────────────────
+
+============================================================
+_set_ferr (como ferramenta vira acao) - inicio
+============================================================
+    0:     def _set_ferr(self, c):
+    1:         self.ferramenta = c
+    2:         if c == "calibrar" and self.modo == "zero":
+    3:             messagebox.showinfo("Calibração","Disponível apenas no modo drone.")
+    4:             self._set_ferr("sel")
+    5:             return
+    6:         # ──── VISUAL: marca ferramenta ativa na toolbar ────
+    7:         if hasattr(self, "btns_ferr"):
+    8:             for ch, fr in self.btns_ferr.items():
+    9:                 if not isinstance(fr, tk.Frame):
+   10:                     continue
+   11:                 ativo = (ch == c)
+   12:                 fr._ativo = ativo
+   13:                 if ativo:
+   14:                     fr.config(bg=FUNDO_ATIVO)
+   15:                     fr._ind.config(bg=DOURADO)
+   16:                     fr._ico.config(bg=FUNDO_ATIVO, fg=DOURADO)
+   17:                     fr._txt.config(bg=FUNDO_ATIVO, fg=TEXTO_PRIMARIO,
+   18:                                    font=FONTE_SMALL_BOLD)
+   19:                 else:
+   20:                     fr.config(bg=FUNDO_PAINEL)
+   21:                     fr._ind.config(bg=FUNDO_PAINEL)
+   22:                     fr._ico.config(bg=FUNDO_PAINEL, fg=TEXTO_SECUNDARIO)
+   23:                     fr._txt.config(bg=FUNDO_PAINEL, fg=TEXTO_SECUNDARIO,
+   24:                                    font=FONTE_SMALL)
+   25:         # Desmarca botoes de via quando usa ferramenta normal
+   26:         if hasattr(self, "btns_via"):
+   27:             for ch, fr in self.btns_via.items():
+   28:                 if not isinstance(fr, tk.Frame):
+   29:                     continue
+
+============================================================
+Como o botao de ferramenta chama a acao (bind/lambda)
+============================================================
+  L32: FERRAMENTAS_VIA, MODELOS_PLACA, MODELOS_VIA,
+  L656: FERRAMENTAS = [
+  L895: btns_ferr = {}
+  L896: FERRAMENTAS:
+  L897: _set_ferr)
+  L898: btns_ferr[chave] = f
+  L902: FERRAMENTAS_VIA:
+  L903: _set_ferr_via)
+  L1129: _set_ferr("sel")
+  L1130: _set_ferr("sel"))
+  L1396: FERRAMENTAS
+  L1444: btns_ferr.values():
+  L1451: FERRAMENTAS_VIA:
+  L1456: _set_ferr_via("asfalto")
+  L1468: FERRAMENTAS:
+  L1469: btns_ferr[chave].pack(pady=1, padx=3)
+  L1473: _set_ferr("sel")
+  L1477: _set_ferr_via(self, f):
+  L1480: FERRAMENTAS_VIA if ch==f), f)
+  L1502: _set_ferr(self, c):
+  L1506: _set_ferr("sel")
+  L1509: btns_ferr"):
+  L1510: btns_ferr.items():
+  L1635: _inserir(f,x,y)
+  L1845: _set_ferr("cota")
+  L1856: _inserir(self,tipo,x,y):
+
+============================================================
+catalogo_veiculos importado no editor? CATEGORIAS disponivel?
+============================================================
+  'catalogo_veiculos' no editor: True
+  catalogo tem CATEGORIAS: True
+  catalogo tem por_categoria: True
+  catalogo tem get(): True
